@@ -1,8 +1,12 @@
 // int N_profiles = 1;
 
+#define timer_max_cooldown 0x100000;          // 2^20
+#define timer_overflow_th 0x1000000000000000; // 2^60
+#define timer_max_value (0x1 << 64);
+
 class APIWrapper
 {
-
+public:
     auto setWifiConfig()
     {
         // set name and password name
@@ -20,28 +24,44 @@ class APIWrapper
     {
     }
 
-    auto getRainData()
+    int getRainData()
     {
     }
 
 private:
     // wifi config
     // data
-
-}
+};
 
 class Plant
 {
-
 public:
     Plant(int soilMoisturePin, int pumpPin) : soilMoisturePin(soilMoisturePin), pumpPin(pumpPin)
     {
+        this->inUse = false;
+        this->onCooldown = false;
         pinMode(pumpPin, OUTPUT);
         digitalWrite(pumpPin, LOW); // Ensure the pump is initially turned off
     }
 
-    void setProfile()
+    void setProfile(int timedVolume = 10, int regularPeriod = 0, int cooldownPeriod = 0)
     {
+        this->inUse = true;
+        this->timedVolume = timedVolume;
+        this->regularPeriod = regularPeriod;
+        this->cooldownPeriod = cooldownPeriod;
+        if (regularPeriod != 0)
+        {
+            this->nextEvent = regularPeriod;
+        }
+        else if (cooldownPeriod)
+        {
+            this->nextEvent = cooldownPeriod;
+        }
+        else
+        {
+            this->nextEvent = 0;
+        }
     }
 
     float getSoilMoisture()
@@ -67,7 +87,7 @@ public:
 
     int calculateVolume(int soilMoistureLevel, int rainLevel)
     {
-        int volume;
+        int volume = 0;
         if (soilMoistureThreshold == 0)
         {
             // calculate volume = " timedVolume" - func(rainLevel)
@@ -81,50 +101,64 @@ public:
 
     void UpdateNextEvent(uint_64_t timer)
     {
-        if (timedPeriod != 0)
+        if (regularPeriod != 0)
         {
-            nextEvent = nextEvent + timedPeriod;
+            this->nextEvent = this->nextEvent + regularPeriod;
         }
         else if (cooldownPeriod != 0)
         {
-            nextEvent = nextEvent + cooldownPeriod;
+            this->nextEvent = this->nextEvent + cooldownPeriod;
+            this->onCooldown = true;
         }
+
+        this->nextEvent = this->nextEvent % ;
+
         return;
     }
 
-    void control()
+    void control(APIWrapper api)
     {
+        if (!this->inUse)
+        {
+            return;
+        }
+
         int soilMoistureLevel, rainLevel, pumpVolume;
         uint_64_t timer;
 
         // get_timer() from esp32 api
-        if (soilMoistureThreshold != 0)
+
+        if (this->soilMoistureThreshold != 0)
         {
+
+            // if (this->nextEvent != 0 || this->onCooldown)
+            //{
+            //     return;
+            // }
 
             if (nextEvent != 0)
             {
-                If((timer < nextEvent && (nextEvent - timer) < timer_max_cooldown) || timer - nextEvent > timer_overflow_th)
+                if ((timer < nextEvent && (nextEvent - timer) < timer_max_cooldown) || timer - nextEvent > timer_overflow_th)
                 {
-                    Return // cooldown
+                    return; // cooldown
                 }
             }
 
             soilMoistureLevel = getSoilMoisture();
-            rainLevel = getRainFromAPI();
+            rainLevel = api.getRainData();
+            pumpVolume = calculateVolume(soilMoistureLevel, rainLevel);
 
-            pumpVolume = calculateVolume(soilMoistureLevel, rainLevel)
-
-                if (pumpVolume != 0)
+            if (pumpVolume != 0)
             {
-                turnOnWaterPump(pumpVolume)
+                this->turnOnWaterPump(pumpVolume);
 
-                    UpdateNextEvent(timer)
+                this->UpdateNextEvent(timer);
             }
         }
         else
         {
 
-            if (timer > nextEvent or nextEvent - timer > timer_overflow_th)
+            if (timer > nextEvent || nextEvent - timer > timer_overflow_th)
             {
                 rainLevel = getRainFromAPI();
 
@@ -134,23 +168,29 @@ public:
                 UpdateNextEvent(timer)
             }
         }
-        Return;
+        return;
     }
 
-private:
     bool inUse;
+
+private:
+    // pin specific
     int soilMoisturePin;
     int pumpPin;
+    // peripherals specific
     int soilMoistureThreshold;
     float pumpFlowRate; // flow rate [L/min]
+    // profile
     int timedVolume;
-    int timedPeriod;
-    int cooldownPeriod;                         // could use "timedPeriod" for both
-    int timer_max_cooldown = 0x100000;          // 2^20
-    int timer_overflow_th = 0x1000000000000000; // 2^60
+    int regularPeriod;  // between watering
+    int cooldownPeriod; // without watering
+    // state
+    int nextEvent;
+    int onCooldown;
 };
 
 Plant profiles[4];
+APIWrapper api;
 
 void setup()
 {
@@ -168,7 +208,8 @@ void loop()
     // put your main code here, to run repeatedly:
     for (int i = 0; i < 4; i++)
     {
-        profiles[i].control();
+        profiles[i].control(api);
     }
-    Delay(10 * 60 * 1000); // 10 minutes
+    // Delay(10 * 60 * 1000); // 10 minutes
+    Delay(10 * 1000);
 }
