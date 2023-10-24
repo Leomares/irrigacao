@@ -1,26 +1,45 @@
-// int N_profiles = 1;
+// todo
+// implement wrapper
+// update control
+// initialize timers and pass pointer to control func
+// we dont need to deal with timer cycle, its only updated each second
+
+#include <iostream>
+// #include <EEPROM.h>
+#include <Preferences.h> //storage in flash
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <ArduinoJson.h>
+using namespace std;
+
+// #define EEPROM_MAX_SIZE 512; // Adjust the size as needed
+// #define PROFILES_SIZE 5 * 4;
+//  #define SSID_ADDRESS 0           // Address to store SSID
+//  #define PASS_ADDRESS 64          // Address to store password
+//  #define MAX_CREDENTIAL_LENGTH 64 // Adjust the length as needed
 
 #define timer_max_cooldown 0x100000;          // 2^20
 #define timer_overflow_th 0x1000000000000000; // 2^60
 #define timer_max_value (0x1 << 64);
 
+// https://www.weatherapi.com/docs/
 class APIWrapper
 {
 public:
-    auto setWifiConfig()
+    void setWifiConfig()
     {
         // set name and password name
     }
 
-    auto getDataFromURL(char *url)
+    void getDataFromURL(char *url)
     {
     }
 
-    auto parseData()
+    void parseData()
     {
     }
 
-    auto updateData()
+    void updateData()
     {
     }
 
@@ -38,30 +57,43 @@ class Plant
 public:
     Plant(int soilMoisturePin, int pumpPin) : soilMoisturePin(soilMoisturePin), pumpPin(pumpPin)
     {
-        this->inUse = false;
-        this->onCooldown = false;
+        inUse = false;
+        onCooldown = false;
         pinMode(pumpPin, OUTPUT);
         digitalWrite(pumpPin, LOW); // Ensure the pump is initially turned off
     }
 
-    void setProfile(int timedVolume = 10, int regularPeriod = 0, int cooldownPeriod = 0)
+    void setProfile(int index)
     {
-        this->inUse = true;
-        this->timedVolume = timedVolume;
-        this->regularPeriod = regularPeriod;
-        this->cooldownPeriod = cooldownPeriod;
+        // read from preference namespace by index
+        bool validProfile;
+
+        preferences.begin("profile" + to_string(index), true);
+        validProfile = preferences.getBool("valid", false);
+        if (!validProfile)
+            return;
+        isOutside = preferences.getBool("isOutside", false);
+        volume = preferences.getInt("volume", 0);
+        regularPeriod = preferences.getInt("regularPeriod", 0);
+        cooldownPeriod = preferences.getInt("cooldownPeriod", 0);
+        preferences.end();
+
+        inUse = true;
+
         if (regularPeriod != 0)
         {
-            this->nextEvent = regularPeriod;
+            nextEvent = regularPeriod;
         }
-        else if (cooldownPeriod)
+        else if (cooldownPeriod != 0)
         {
-            this->nextEvent = cooldownPeriod;
+            nextEvent = cooldownPeriod;
         }
         else
         {
-            this->nextEvent = 0;
+            nextEvent = 0;
         }
+
+        return;
     }
 
     float getSoilMoisture()
@@ -76,7 +108,7 @@ public:
     void turnOnWaterPump(int volume)
     {
         // volume [mL]
-        int time_ms = (60 * volume) / pumpFlowRate;
+        int time_ms = (60 * volume) / this->pumpFlowRate;
 
         digitalWrite(pumpPin, true);
         delay(time_ms);
@@ -111,12 +143,12 @@ public:
             this->onCooldown = true;
         }
 
-        this->nextEvent = this->nextEvent % ;
+        this->nextEvent = this->nextEvent % timer_max_value;
 
         return;
     }
 
-    void control(APIWrapper api)
+    void control(float rainData)
     {
         if (!this->inUse)
         {
@@ -145,8 +177,7 @@ public:
             }
 
             soilMoistureLevel = getSoilMoisture();
-            rainLevel = api.getRainData();
-            pumpVolume = calculateVolume(soilMoistureLevel, rainLevel);
+            pumpVolume = calculateVolume(soilMoistureLevel, rainData);
 
             if (pumpVolume != 0)
             {
@@ -162,9 +193,9 @@ public:
             {
                 rainLevel = getRainFromAPI();
 
-                pumpVolume = calculateVolume(0, rainLevel)
+                pumpVolume = calculateVolume(0, rainLevel);
 
-                    turnOnWaterPump(pumpVolume);
+                turnOnWaterPump(pumpVolume);
                 UpdateNextEvent(timer)
             }
         }
@@ -181,34 +212,126 @@ private:
     int soilMoistureThreshold;
     float pumpFlowRate; // flow rate [L/min]
     // profile
-    int timedVolume;
+    int volume;
     int regularPeriod;  // between watering
     int cooldownPeriod; // without watering
+    bool isOutside;
     // state
     int nextEvent;
     int onCooldown;
 };
 
-Plant profiles[4];
+void writeProfile(int index, bool isOutside, int volume, int regularPeriod = 10, int cooldownPeriod = 0)
+{
+    preferences.begin("profile" + to_string(index), false);
+    preferences.putBool("valid", true);
+    preferences.putBool("isOutside", isOutside);
+    preferences.putInt("volume", volume);
+    preferences.putInt("regularPeriod", regularPeriod);
+    preferences.putInt("cooldownPeriod", cooldownPeriod);
+    preferences.end();
+
+    return;
+}
+
+void changeWifiConfig(string ssid_, string password_)
+{
+    preferences.begin("wifi", false);
+    preferences.putString("ssid_string", ssid_);
+    preferences.putString("password_string", password_);
+    preferences.end();
+
+    return;
+}
+
+Preferences preferences;
+
+char *ssid;
+char *password;
+bool connected;
+string response = "";
+DynamicJsonDocument doc(2048);
+
 APIWrapper api;
+
+int n_controllers = 0;
+int sensorPins[4] = {-1, -1, -1, -1};
+int pumpPins[4] = {-1, -1, -1, -1};
+Plant *profiles[4] = {};
 
 void setup()
 {
-    // put your setup code here, to run once:
     Serial.begin(115200);
+    // put your setup code here, to run once:
+    Serial.print('Setting up profiles');
+    for (int i = 0; i < 4; i++)
+    {
+        // update to read the first variable of a profile on flash?
+        // create a namespace to load the last profile used on these pins
+        if (sensorPins[i] < 0 || pumpPins[i] < 0)
+        {
+            break;
+        }
+        n_controllers++;
+        profiles[i] = new Plant(sensorPins[i], pumpPins[i]);
+        profiles[i]->setProfile(i);
+    }
+
+    Serial.print("Configure Wifi?");
+    response = Serial.readString();
+    if (response == "y")
+    {
+        // pass name and password to wifi namespace
+    }
+
+    // read wifi config
+    preferences.begin("wifi", false);
+    ssid = preferences.getString("ssid_string", "default");
+    password = preferences.getString("password_string", "default");
+    preferences.end();
+    // initialize wifi
+    if (trcmp(ssid, "default") != 0)
+    {
+        WiFi.mode(WIFI_STA);
+        WiFi.begin(ssid, password);
+        Serial.println("Setting up Wifi");
+
+        // Wait for connection
+        int timeout = 0;
+        while (WiFi.status() != WL_CONNECTED && timeout < 30000)
+        {
+            delay(500);
+            timeout += 500;
+            Serial.print(".");
+        }
+        if (timeout < 30000)
+        {
+            Serial.print("WiFi connected with IP: ");
+            Serial.println(WiFi.localIP());
+            connected = true;
+        }
+        else
+        {
+            Serial.print("Wifi timeout. Weather API won't be used.");
+            connected = false;
+        }
+    }
+    else
+    {
+        Serial.print("No Wifi config found. Weather API won't be used.");
+        connected = false;
+    }
+
     // set bluetooth
-    // setup timer
-    // ler arquivo e puxar config se tiver
-    // inicia wifi
-    // seta perfil(is)/ instancia Plant
 }
 
 void loop()
 {
     // put your main code here, to run repeatedly:
-    for (int i = 0; i < 4; i++)
+    float rainData = api.getRainData();
+    for (int i = 0; i < n_controllers; i++)
     {
-        profiles[i].control(api);
+        profiles[i].control(rainData);
     }
     // Delay(10 * 60 * 1000); // 10 minutes
     Delay(10 * 1000);
