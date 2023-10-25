@@ -1,10 +1,10 @@
 // todo
 // implement wrapper
-// update control
+// implement timer to update rain data
+// update control and remove overflow handling
 // initialize timers and pass pointer to control func
-// we dont need to deal with timer cycle, its only updated each second
 
-#include <iostream>
+#include <iostream> //serial
 // #include <EEPROM.h>
 #include <Preferences.h> //storage in flash
 #include <WiFi.h>
@@ -12,18 +12,13 @@
 #include <ArduinoJson.h>
 using namespace std;
 
-// #define EEPROM_MAX_SIZE 512; // Adjust the size as needed
-
-#define timer_max_cooldown 0x100000;          // 2^20
-#define timer_overflow_th 0x1000000000000000; // 2^60
-#define timer_max_value (0x1 << 64);
-
 // https://www.weatherapi.com/docs/
 class APIWrapper
 {
 public:
     APIWrapper(char *url) : url(url)
     {
+        data = "";
     }
 
     void setWifiConfig()
@@ -43,14 +38,18 @@ public:
             password = Serial.readString();
             changeWifiConfig(ssid, password);
         }
+        return;
+    }
 
+    void connectWifi()
+    {
         // read wifi config
         preferences.begin("wifi", false);
-        ssid = preferences.getString("ssid_string", "default");
-        password = preferences.getString("password_string", "default");
+        ssid = preferences.getString("ssid_string", "");
+        password = preferences.getString("password_string", "");
         preferences.end();
         // initialize wifi
-        if (trcmp(ssid, "default") != 0)
+        if (ssid != "")
         {
             WiFi.mode(WIFI_STA);
             WiFi.begin(ssid, password);
@@ -107,8 +106,12 @@ public:
             }
             Serial.print("successful API call");
             http.end();
+            data = doc[key].as<char *>() | -1;
         }
-        data = doc[key].as<char *>();
+        else
+        {
+            data = -1;
+        }
         return;
     }
 
@@ -170,11 +173,10 @@ public:
 
     float getSoilMoisture()
     {
-        float moisture;
         int val = analogRead(soilMoisturePin);
         // conversion
         // float moisture
-        return moisture;
+        return (float)val;
     }
 
     void turnOnWaterPump(int volume)
@@ -354,7 +356,12 @@ void loop()
     DynamicJsonDocument doc(1024);
     api.getDataFromURL("value");
     Serial.println(api.getData());
-    char *rainData = api.getRainData();
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        api.connectWifi();
+    }
+    api.getDataFromURL();
+    char *rainData = api.getRainData("value");
     for (int i = 0; i < n_controllers; i++)
     {
         profiles[i].control(rainData);
