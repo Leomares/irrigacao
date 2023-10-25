@@ -30,13 +30,37 @@ public:
     {
         // set name and password name
     }
-
+    // https://wokwi.com/projects/371565043567756289
     void getDataFromURL(char *url)
     {
+        if (WiFi.status() == WL_CONNECTED) {
+            Serial.println("Getting current data...");
+
+            http.begin(url);
+            int httpCode = http.GET();
+            Serial.print("HTTP Code: ");
+            Serial.println(httpCode);
+            if (httpCode > 0) {
+                DeserializationError error = deserializeJson(doc, http.getString());
+
+                if (error) {
+                    Serial.print(F("deserializeJson failed: "));
+                    Serial.println(error.f_str());
+                    http.end();
+                    delay(2500);
+                    return;
+                }
+            }
+            Serial.print("successful API call");
+            http.end();
+        
+        }
+        return
     }
 
     void parseData()
     {
+        // example: String BTCUSDPrice = doc["bpi"]["USD"]["rate_float"].as<String>();
     }
 
     void updateData()
