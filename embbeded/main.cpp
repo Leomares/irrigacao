@@ -13,10 +13,6 @@
 using namespace std;
 
 // #define EEPROM_MAX_SIZE 512; // Adjust the size as needed
-// #define PROFILES_SIZE 5 * 4;
-//  #define SSID_ADDRESS 0           // Address to store SSID
-//  #define PASS_ADDRESS 64          // Address to store password
-//  #define MAX_CREDENTIAL_LENGTH 64 // Adjust the length as needed
 
 #define timer_max_cooldown 0x100000;          // 2^20
 #define timer_overflow_th 0x1000000000000000; // 2^60
@@ -26,24 +22,82 @@ using namespace std;
 class APIWrapper
 {
 public:
+    APIWrapper(char *url) : url(url)
+    {
+    }
+
     void setWifiConfig()
     {
-        // set name and password name
+        String ssid;
+        String password;
+        String response = "";
+
+        Serial.print("Configure Wifi?");
+        response = Serial.readString();
+        if (response == "y")
+        {
+            // pass name and password to wifi namespace
+            Serial.print("SSID to connect: ");
+            ssid = Serial.readString();
+            Serial.print("password: ");
+            password = Serial.readString();
+            changeWifiConfig(ssid, password);
+        }
+
+        // read wifi config
+        preferences.begin("wifi", false);
+        ssid = preferences.getString("ssid_string", "default");
+        password = preferences.getString("password_string", "default");
+        preferences.end();
+        // initialize wifi
+        if (trcmp(ssid, "default") != 0)
+        {
+            WiFi.mode(WIFI_STA);
+            WiFi.begin(ssid, password);
+            Serial.println("Setting up Wifi");
+
+            // Wait for connection
+            int timeout = 0;
+            while (WiFi.status() != WL_CONNECTED && timeout < 30000)
+            {
+                delay(500);
+                timeout += 500;
+                Serial.print(".");
+            }
+            if (timeout < 30000)
+            {
+                Serial.print("WiFi connected with IP: ");
+                Serial.println(WiFi.localIP());
+            }
+            else
+            {
+                Serial.print("Wifi timeout. Weather API won't be used.");
+            }
+        }
+        else
+        {
+            Serial.print("No Wifi config found. Weather API won't be used.");
+        }
+        return;
     }
+
     // https://wokwi.com/projects/371565043567756289
-    void getDataFromURL(char *url)
+    void getDataFromURL(String key)
     {
-        if (WiFi.status() == WL_CONNECTED) {
+        if (WiFi.status() == WL_CONNECTED)
+        {
             Serial.println("Getting current data...");
 
             http.begin(url);
             int httpCode = http.GET();
             Serial.print("HTTP Code: ");
             Serial.println(httpCode);
-            if (httpCode > 0) {
+            if (httpCode > 0)
+            {
                 DeserializationError error = deserializeJson(doc, http.getString());
 
-                if (error) {
+                if (error)
+                {
                     Serial.print(F("deserializeJson failed: "));
                     Serial.println(error.f_str());
                     http.end();
@@ -53,27 +107,21 @@ public:
             }
             Serial.print("successful API call");
             http.end();
-        
         }
-        return
+        data = doc[key].as<char *>();
+        return;
     }
 
-    void parseData()
+    char *getData()
     {
-        // example: String BTCUSDPrice = doc["bpi"]["USD"]["rate_float"].as<String>();
-    }
-
-    void updateData()
-    {
-    }
-
-    int getRainData()
-    {
+        return data;
     }
 
 private:
-    // wifi config
-    // data
+    // api call
+    char *url;
+    DynamicJsonDocument doc(2048);
+    char *data;
 };
 
 class Plant
@@ -258,7 +306,7 @@ void writeProfile(int index, bool isOutside, int volume, int regularPeriod = 10,
     return;
 }
 
-void changeWifiConfig(string ssid_, string password_)
+void changeWifiConfig(String ssid_, String password_)
 {
     preferences.begin("wifi", false);
     preferences.putString("ssid_string", ssid_);
@@ -270,13 +318,7 @@ void changeWifiConfig(string ssid_, string password_)
 
 Preferences preferences;
 
-char *ssid;
-char *password;
-bool connected;
-string response = "";
-DynamicJsonDocument doc(2048);
-
-APIWrapper api;
+APIWrapper api('https://api.chucknorris.io/jokes/random');
 
 int n_controllers = 0;
 int sensorPins[4] = {-1, -1, -1, -1};
@@ -285,8 +327,9 @@ Plant *profiles[4] = {};
 
 void setup()
 {
-    Serial.begin(115200);
     // put your setup code here, to run once:
+
+    Serial.begin(115200);
     Serial.print('Setting up profiles');
     for (int i = 0; i < 4; i++)
     {
@@ -301,58 +344,17 @@ void setup()
         profiles[i]->setProfile(i);
     }
 
-    Serial.print("Configure Wifi?");
-    response = Serial.readString();
-    if (response == "y")
-    {
-        // pass name and password to wifi namespace
-    }
-
-    // read wifi config
-    preferences.begin("wifi", false);
-    ssid = preferences.getString("ssid_string", "default");
-    password = preferences.getString("password_string", "default");
-    preferences.end();
-    // initialize wifi
-    if (trcmp(ssid, "default") != 0)
-    {
-        WiFi.mode(WIFI_STA);
-        WiFi.begin(ssid, password);
-        Serial.println("Setting up Wifi");
-
-        // Wait for connection
-        int timeout = 0;
-        while (WiFi.status() != WL_CONNECTED && timeout < 30000)
-        {
-            delay(500);
-            timeout += 500;
-            Serial.print(".");
-        }
-        if (timeout < 30000)
-        {
-            Serial.print("WiFi connected with IP: ");
-            Serial.println(WiFi.localIP());
-            connected = true;
-        }
-        else
-        {
-            Serial.print("Wifi timeout. Weather API won't be used.");
-            connected = false;
-        }
-    }
-    else
-    {
-        Serial.print("No Wifi config found. Weather API won't be used.");
-        connected = false;
-    }
-
+    api.setWifiConfig();
     // set bluetooth
 }
 
 void loop()
 {
     // put your main code here, to run repeatedly:
-    float rainData = api.getRainData();
+    DynamicJsonDocument doc(1024);
+    api.getDataFromURL("value");
+    Serial.println(api.getData());
+    char *rainData = api.getRainData();
     for (int i = 0; i < n_controllers; i++)
     {
         profiles[i].control(rainData);
