@@ -1,8 +1,9 @@
 // todo
-// implement wrapper
-// implement timer to update rain data
-// update control and remove overflow handling
+// implement memory access as static method of a class
 // initialize timers and pass pointer to control func
+// update control and remove overflow handling
+// implement timer to update location data and rain data
+// implement bluetooth handler
 
 #include <iostream> //serial
 // #include <EEPROM.h>
@@ -12,16 +13,32 @@
 #include <ArduinoJson.h>
 using namespace std;
 
-// https://www.weatherapi.com/docs/
-class APIWrapper
+class WiFiHandler
 {
 public:
-    APIWrapper(char *url) : url(url)
+    WiFiHandler()
     {
-        data = "";
+        inUse = false;
+        preferences.begin("wifi", true);
+        ssid = preferences.getString("ssid_string", "");
+        password = preferences.getString("password_string", "");
+        preferences.end();
+        if (ssid == "" || password == "")
+        {
+            Serial.println("No wifi configuration.");
+            // getSerialWifiConfig();
+        }
+        return;
     }
 
-    void setWifiConfig()
+    WifiHandler(String ssid, String password)
+    {
+        inUse = false;
+        setWiFiConfig(ssid, password);
+        return;
+    }
+
+    void getSerialWifiConfig()
     {
         String ssid;
         String password;
@@ -36,8 +53,18 @@ public:
             ssid = Serial.readString();
             Serial.print("password: ");
             password = Serial.readString();
-            changeWifiConfig(ssid, password);
+            setWiFiConfig(ssid, password);
         }
+        return;
+    }
+
+    void setWifiConfig(String ssid_, String password_)
+    {
+        /* fdsfsdf*/
+        preferences.begin("wifi", false);
+        preferences.putString("ssid_string", ssid_);
+        preferences.putString("password_string", password_);
+        preferences.end();
         return;
     }
 
@@ -59,7 +86,7 @@ public:
             int timeout = 0;
             while (WiFi.status() != WL_CONNECTED && timeout < 30000)
             {
-                delay(500);
+                Delay(500);
                 timeout += 500;
                 Serial.print(".");
             }
@@ -67,6 +94,7 @@ public:
             {
                 Serial.print("WiFi connected with IP: ");
                 Serial.println(WiFi.localIP());
+                inUse = true;
             }
             else
             {
@@ -80,7 +108,26 @@ public:
         return;
     }
 
-    // https://wokwi.com/projects/371565043567756289
+    bool isConnected()
+    {
+        return inUse;
+    }
+
+private:
+    bool inUse;
+}
+
+// https://www.weatherapi.com/docs/
+// https://ipstack.com/
+// https://wokwi.com/projects/371565043567756289
+class APIWrapper
+{
+public:
+    APIWrapper(char *url) : url(url)
+    {
+        data = "";
+    }
+
     void getDataFromURL(String key)
     {
         if (WiFi.status() == WL_CONNECTED)
@@ -100,7 +147,7 @@ public:
                     Serial.print(F("deserializeJson failed: "));
                     Serial.println(error.f_str());
                     http.end();
-                    delay(2500);
+                    Delay(2500);
                     return;
                 }
             }
@@ -185,9 +232,9 @@ public:
         int time_ms = (60 * volume) / this->pumpFlowRate;
 
         digitalWrite(pumpPin, true);
-        delay(time_ms);
+        Delay(time_ms);
         digitalWrite(pumpPin, false);
-        delay(10);
+        Delay(10);
         return;
     }
 
@@ -303,16 +350,6 @@ void writeProfile(int index, bool isOutside, int volume, int regularPeriod = 10,
     preferences.putInt("volume", volume);
     preferences.putInt("regularPeriod", regularPeriod);
     preferences.putInt("cooldownPeriod", cooldownPeriod);
-    preferences.end();
-
-    return;
-}
-
-void changeWifiConfig(String ssid_, String password_)
-{
-    preferences.begin("wifi", false);
-    preferences.putString("ssid_string", ssid_);
-    preferences.putString("password_string", password_);
     preferences.end();
 
     return;
