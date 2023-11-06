@@ -13,17 +13,57 @@
 #include <ArduinoJson.h>
 using namespace std;
 
+Preferences preferences;
+
+class Memory
+{
+public:
+    Memory()
+    {
+        return;
+    }
+
+    static void setWiFiConfig(String ssid_, String password_)
+    {
+        preferences.begin("wifi", false);
+        preferences.putString("ssid_string", ssid_);
+        preferences.putString("password_string", password_);
+        preferences.end();
+        return;
+    }
+
+    static void getWiFiConfig(String *ssid_, String *password_)
+    {
+        preferences.begin("wifi", true);
+        *ssid_ = preferences.getString("ssid_string", "");
+        *password_ = preferences.getString("password_string", "");
+        preferences.end();
+        return;
+    }
+
+    static void setProfile(int index, bool isOutside, int volume, int regularPeriod = 10, int cooldownPeriod = 0)
+    {
+        preferences.begin("profile" + to_string(index), false);
+        preferences.putBool("valid", true);
+        preferences.putBool("isOutside", isOutside);
+        preferences.putInt("volume", volume);
+        preferences.putInt("regularPeriod", regularPeriod);
+        preferences.putInt("cooldownPeriod", cooldownPeriod);
+        preferences.end();
+
+        return;
+    }
+
+}
+
 class WiFiHandler
 {
 public:
     WiFiHandler()
     {
-        inUse = false;
-        preferences.begin("wifi", true);
-        ssid = preferences.getString("ssid_string", "");
-        password = preferences.getString("password_string", "");
-        preferences.end();
-        if (ssid == "" || password == "")
+        String *ssid, *password;
+        Memory::getWiFiConfig(&ssid, &password);
+        if (*ssid == "" || *password == "")
         {
             Serial.println("No wifi configuration.");
             // getSerialWifiConfig();
@@ -33,12 +73,11 @@ public:
 
     WifiHandler(String ssid, String password)
     {
-        inUse = false;
-        setWiFiConfig(ssid, password);
+        Memory::setWiFiConfig(ssid, password);
         return;
     }
 
-    void getSerialWifiConfig()
+    static void getSerialWifiConfig()
     {
         String ssid;
         String password;
@@ -53,34 +92,22 @@ public:
             ssid = Serial.readString();
             Serial.print("password: ");
             password = Serial.readString();
-            setWiFiConfig(ssid, password);
+            Memory::setWiFiConfig(ssid, password);
         }
         return;
     }
 
-    void setWifiConfig(String ssid_, String password_)
-    {
-        /* fdsfsdf*/
-        preferences.begin("wifi", false);
-        preferences.putString("ssid_string", ssid_);
-        preferences.putString("password_string", password_);
-        preferences.end();
-        return;
-    }
-
-    void connectWifi()
+    static void connectWifi()
     {
         // read wifi config
-        preferences.begin("wifi", false);
-        ssid = preferences.getString("ssid_string", "");
-        password = preferences.getString("password_string", "");
-        preferences.end();
+        String *ssid, *password;
+        Memory::getWiFiConfig(&ssid, &password);
         // initialize wifi
-        if (ssid != "")
+        if (*ssid != "")
         {
             WiFi.mode(WIFI_STA);
-            WiFi.begin(ssid, password);
-            Serial.println("Setting up Wifi");
+            WiFi.begin(*ssid, *password);
+            Serial.println("Setting up Wifi.");
 
             // Wait for connection
             int timeout = 0;
@@ -94,27 +121,23 @@ public:
             {
                 Serial.print("WiFi connected with IP: ");
                 Serial.println(WiFi.localIP());
-                inUse = true;
             }
             else
             {
-                Serial.print("Wifi timeout. Weather API won't be used.");
+                Serial.println("Wifi timeout.");
             }
         }
         else
         {
-            Serial.print("No Wifi config found. Weather API won't be used.");
+            Serial.println("No Wifi config found.");
         }
         return;
     }
 
-    bool isConnected()
+    static bool isConnected()
     {
-        return inUse;
+        return WiFi.status() == WL_CONNECTED;
     }
-
-private:
-    bool inUse;
 }
 
 // https://www.weatherapi.com/docs/
@@ -130,7 +153,7 @@ public:
 
     void getDataFromURL(String key)
     {
-        if (WiFi.status() == WL_CONNECTED)
+        if (WiFiHandler::isConnected())
         {
             Serial.println("Getting current data...");
 
@@ -151,12 +174,13 @@ public:
                     return;
                 }
             }
-            Serial.print("successful API call");
+            Serial.println("Successful API call");
             http.end();
-            data = doc[key].as<char *>() | -1;
+            data = doc[key].as<char *>() || -1;
         }
         else
         {
+            Serial.println("WiFi not connected.");
             data = -1;
         }
         return;
@@ -342,21 +366,6 @@ private:
     int onCooldown;
 };
 
-void writeProfile(int index, bool isOutside, int volume, int regularPeriod = 10, int cooldownPeriod = 0)
-{
-    preferences.begin("profile" + to_string(index), false);
-    preferences.putBool("valid", true);
-    preferences.putBool("isOutside", isOutside);
-    preferences.putInt("volume", volume);
-    preferences.putInt("regularPeriod", regularPeriod);
-    preferences.putInt("cooldownPeriod", cooldownPeriod);
-    preferences.end();
-
-    return;
-}
-
-Preferences preferences;
-
 APIWrapper api('https://api.chucknorris.io/jokes/random');
 
 int n_controllers = 0;
@@ -383,7 +392,6 @@ void setup()
         profiles[i]->setProfile(i);
     }
 
-    api.setWifiConfig();
     // set bluetooth
 }
 
