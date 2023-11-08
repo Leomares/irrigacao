@@ -1,8 +1,11 @@
 // todo
+// separate in files
 // implement memory access as static method of a class
 // put profile in struct
 // initialize timers and pass pointer to control func
-// update control and remove overflow handling
+// update control
+// - remove overflow handling
+// - estimate quantity of water needed after rain based on volume (precip_mm + time elapsed + area of the plant)
 // implement timer to update location data and rain data
 // implement bluetooth handler
 
@@ -146,15 +149,20 @@ public:
 // https://www.weatherapi.com/docs/
 // https://ipstack.com/
 // https://wokwi.com/projects/371565043567756289
+DynamicJsonDocument doc(1024);
 class APIWrapper
 {
 public:
-    APIWrapper(char *url) : url(url)
+    APIWrapper(char *url,int interval) : url(url)
     {
-        data = "";
+    precip_mm = 0.0;
+    current_timestamp = 0;
+    accumulated_precip = 0;
+    accumulated_timestamp = 0;
+    this->interval = interval;
     }
 
-    void getDataFromURL(String key)
+    void getDataFromURL()
     {
         if (WiFiHandler::isConnected())
         {
@@ -179,25 +187,42 @@ public:
             }
             Serial.println("Successful API call");
             http.end();
-            data = doc[key].as<char *>() || -1;
+
+            // data collection
+            strlcpy(last_updated, doc["current"]["last_updated"] | "YYYY-MM-DD HH HH:MM", 16);
+            precip_mm = doc["current"]["precip_mm"] | 0;
+            current_timestamp ++;
+            if (current_timestamp >= 24*60/interval) {
+              current_timestamp = 0;
+              accumulated_precip = 0;
+              accumulated_timestamp = 0;
+            }
+            if (precip_mm > 0) {
+              accumulated_precip += precip_mm;
+              accumulated_timestamp ++;
+            }
         }
         else
         {
             Serial.println("WiFi not connected.");
-            data = -1;
         }
         return;
     }
 
-    char *getData()
-    {
-        return data;
+    void getData(&accumulated,&time){
+      accumulated = accumulated_precip;
+      time = accumulated_timestamp;
+      return;
     }
 
 private:
-    // api call
     char *url;
-    char *data;
+    int interval;
+    char *last_updated;
+    float precip_mm;
+    int current_timestamp;
+    float accumulated_precip;
+    int accumulated_timestamp;
 };
 
 class Plant
@@ -368,7 +393,7 @@ private:
     int onCooldown;
 };
 
-APIWrapper api('https://api.chucknorris.io/jokes/random');
+APIWrapper api('https://api.chucknorris.io/jokes/random',15);
 
 int n_controllers = 0;
 int sensorPins[4] = {-1, -1, -1, -1};
@@ -400,7 +425,6 @@ void setup()
 void loop()
 {
     // put your main code here, to run repeatedly:
-    DynamicJsonDocument doc(1024);
     api.getDataFromURL("value");
     Serial.println(api.getData());
     if (WiFi.status() != WL_CONNECTED)
