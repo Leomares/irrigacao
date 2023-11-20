@@ -1,84 +1,84 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <Arduino.h>
+#include "WiFiHandler.h"
+#include "APIWrapper.h"
+#include "secrets.h"
 
 // https://www.weatherapi.com/docs/
 // https://ipstack.com/
 // https://wokwi.com/projects/371565043567756289
+
 DynamicJsonDocument doc(1024);
-class APIWrapper
+HTTPClient http;
+
+const int timer_ranges[] = {60, 24 * 60, 7 * 24 * 60};
+
+APIWrapper::APIWrapper(int interval = 15)
 {
-public:
-    APIWrapper(char *url, int interval) : url(url)
+    this->interval = interval;
+    url = api_url;
+
+    precip_mm = 0.0;
+    strlcpy(last_updated, (char *)"YYYY-MM-DD HH:MM", 17);
+
+    current_timestamp = 0;
+    for (int i = 0; i < 3; i++)
     {
-        precip_mm = 0.0;
-        current_timestamp = 0;
-        accumulated_precip = 0;
-        accumulated_timestamp = 0;
-        this->interval = interval;
+        accumulated_precip_mm[i] = 0;
+        accumulated_timestamp[i] = 0;
     }
+}
 
-    void getDataFromURL()
+void APIWrapper::getDataFromURL()
+{
+    if (WiFiHandler::isConnected())
     {
-        if (WiFiHandler::isConnected())
+        Serial.println("Getting current data...");
+        http.begin(url);
+        int httpCode = http.GET();
+        Serial.print("HTTP Code: ");
+        Serial.println(httpCode);
+        if (httpCode > 0)
         {
-            Serial.println("Getting current data...");
+            DeserializationError error = deserializeJson(doc, http.getString());
 
-            http.begin(url);
-            int httpCode = http.GET();
-            Serial.print("HTTP Code: ");
-            Serial.println(httpCode);
-            if (httpCode > 0)
+            if (error)
             {
-                DeserializationError error = deserializeJson(doc, http.getString());
-
-                if (error)
-                {
-                    Serial.print(F("deserializeJson failed: "));
-                    Serial.println(error.f_str());
-                    http.end();
-                    delay(2500);
-                    return;
-                }
-            }
-            Serial.println("Successful API call");
-            http.end();
-
-            // data collection
-            strlcpy(last_updated, doc["current"]["last_updated"] | "YYYY-MM-DD HH HH:MM", 16);
-            precip_mm = doc["current"]["precip_mm"] | 0;
-            current_timestamp++;
-            if (current_timestamp >= 24 * 60 / interval)
-            {
-                current_timestamp = 0;
-                accumulated_precip = 0;
-                accumulated_timestamp = 0;
-            }
-            if (precip_mm > 0)
-            {
-                accumulated_precip += precip_mm;
-                accumulated_timestamp++;
+                Serial.print(F("deserializeJson failed: "));
+                Serial.println(error.f_str());
+                http.end();
+                delay(2500);
+                return;
             }
         }
-        else
+        Serial.println("Successful API call");
+        http.end();
+
+        // data collection
+        strlcpy(last_updated, doc["current"]["last_updated"] | "YYYY-MM-DD HH:MM", 17);
+        precip_mm = doc["current"]["precip_mm"] | 0;
+
+        for (int i = 2; i >= 0; i--)
         {
-            Serial.println("WiFi not connected.");
+            if (accumulated_timestamp[i] > timer_ranges[i])
+            {
+                accumulated_precip_mm[i] = 0;
+                accumulated_timestamp[i] = 0;
+            }
+            accumulated_precip_mm[i] += precip_mm;
+            accumulated_timestamp[i] += interval;
         }
-        return;
     }
-
-    void getData(&accumulated, &time)
+    else
     {
-        accumulated = accumulated_precip;
-        time = accumulated_timestamp;
-        return;
+        Serial.println("WiFi not connected.");
     }
+    return;
+}
 
-private:
-    char *url;
-    int interval;
-    char *last_updated;
-    float precip_mm;
-    int current_timestamp;
-    float accumulated_precip;
-    int accumulated_timestamp;
-};
+float APIWrapper::getData(int range)
+{
+    float accumulated = accumulated_precip_mm[range] * accumulated_timestamp[range] / timer_ranges[range];
+    return accumulated;
+}

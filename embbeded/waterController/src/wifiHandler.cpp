@@ -1,85 +1,86 @@
+#include <Arduino.h>
 #include <WiFi.h>
+#include "WiFiHandler.h"
+#include "Memory.h"
 
-class WiFiHandler
+const int timeout_threshold = 60000;
+
+WiFiHandler::WiFiHandler()
 {
-public:
-    WiFiHandler()
+    String ssid, password;
+    Memory::getWiFiConfig(&ssid, &password);
+    if (ssid == "" || password == "")
     {
-        String ssid, password;
-        Memory::getWiFiConfig(ssid, password);
-        if (ssid == "" || password == "")
-        {
-            Serial.println("No wifi configuration.");
-            // getSerialWifiConfig();
-        }
-        return;
+        Serial.println("No wifi configuration.");
+        // getSerialWifiConfig();
     }
+    return;
+}
 
-    WiFiHandler(String ssid, String password)
+WiFiHandler::WiFiHandler(char *ssid, char *password)
+{
+    Memory::setWiFiConfig(ssid, password);
+    return;
+}
+
+void WiFiHandler::getSerialWifiConfig()
+{
+    String ssid;
+    String password;
+    String response = "";
+
+    Serial.print("Configure Wifi?");
+    response = Serial.readString();
+    if (response == "y")
     {
+        // pass name and password to wifi namespace
+        Serial.println("SSID to connect: ");
+        ssid = Serial.readString();
+        Serial.println("password: ");
+        password = Serial.readString();
         Memory::setWiFiConfig(ssid, password);
-        return;
     }
+    return;
+}
 
-    static void getSerialWifiConfig()
+void WiFiHandler::connectWifi()
+{
+    // read wifi config
+    String ssid, password;
+    Memory::getWiFiConfig(&ssid, &password);
+    // initialize wifi
+    if (ssid != "")
     {
-        String ssid;
-        String password;
-        String response = "";
+        WiFi.mode(WIFI_STA);
+        WiFi.begin(ssid, password);
+        Serial.println("Setting up Wifi.");
 
-        Serial.print("Configure Wifi?");
-        response = Serial.readString();
-        if (response == "y")
+        // Wait for connection
+        int timeout = 0;
+        while (WiFi.status() != WL_CONNECTED && timeout < timeout_threshold)
         {
-            // pass name and password to wifi namespace
-            Serial.print("SSID to connect: ");
-            ssid = Serial.readString();
-            Serial.print("password: ");
-            password = Serial.readString();
-            Memory::setWiFiConfig(ssid, password);
+            delay(500);
+            timeout += 500;
+            Serial.print(".");
         }
-        return;
-    }
-
-    static void connectWifi()
-    {
-        // read wifi config
-        String ssid, password;
-        Memory::getWiFiConfig(ssid, password);
-        // initialize wifi
-        if (ssid != "")
+        if (timeout < timeout_threshold)
         {
-            WiFi.mode(WIFI_STA);
-            WiFi.begin(ssid, password);
-            Serial.println("Setting up Wifi.");
-
-            // Wait for connection
-            int timeout = 0;
-            while (WiFi.status() != WL_CONNECTED && timeout < 30000)
-            {
-                delay(500);
-                timeout += 500;
-                Serial.print(".");
-            }
-            if (timeout < 30000)
-            {
-                Serial.print("WiFi connected with IP: ");
-                Serial.println(WiFi.localIP());
-            }
-            else
-            {
-                Serial.println("Wifi timeout.");
-            }
+            Serial.print("WiFi connected with IP: ");
+            Serial.println(WiFi.localIP());
         }
         else
         {
-            Serial.println("No Wifi config found.");
+            Serial.println("Wifi connection timeout.");
         }
-        return;
     }
-
-    static bool isConnected()
+    else
     {
-        return WiFi.status() == WL_CONNECTED;
+        Serial.println("No Wifi config found.");
     }
-};
+    return;
+}
+
+bool WiFiHandler::isConnected()
+{
+    return WiFi.status() == WL_CONNECTED;
+}

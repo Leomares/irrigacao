@@ -9,10 +9,10 @@
 // implement timer to update location data and rain data
 // implement bluetooth handler
 
-#include "memory.cpp> //storage in flash
-#include "wifiHandler.cpp"
-#include "APIWrapper.cpp" //storage in flash
-#include "plant.cpp"      //storage in flash
+#include "Memory.h" //storage in flash
+#include "WiFiHandler.h"
+#include "APIWrapper.h" //storage in flash
+#include "Controller.h" //storage in flash
 
 APIWrapper api('https://api.chucknorris.io/jokes/random', 15);
 
