@@ -23,6 +23,8 @@ public:
     static void setProfile(int index, Profile profile);
 
     static Profile getProfile(int index);
+
+    static void resetNVS();
 };
 
 #endif

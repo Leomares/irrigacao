@@ -1,5 +1,6 @@
 // #include <EEPROM.h>
 #include <Preferences.h>
+#include <nvs_flash.h>
 #include "Memory.h"
 
 Preferences prefs;
@@ -65,4 +66,11 @@ Profile Memory::getProfile(int index)
     profile.cooldownPeriod = prefs.getInt("cooldownPeriod", 0);
     prefs.end();
     return profile;
+}
+
+void Memory::resetNVS()
+{
+    nvs_flash_erase(); // erase the NVS partition and...
+    nvs_flash_init();  // initialize the NVS partition.
+    return;
 }

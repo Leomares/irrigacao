@@ -12,8 +12,6 @@
 DynamicJsonDocument doc(1024);
 HTTPClient http;
 
-const int timer_ranges[] = {60, 24 * 60, 7 * 24 * 60};
-
 APIWrapper::APIWrapper(int interval = 15)
 {
     this->interval = interval;
@@ -23,11 +21,6 @@ APIWrapper::APIWrapper(int interval = 15)
     strlcpy(last_updated, (char *)"YYYY-MM-DD HH:MM", 17);
 
     current_timestamp = 0;
-    for (int i = 0; i < 3; i++)
-    {
-        accumulated_precip_mm[i] = 0;
-        accumulated_timestamp[i] = 0;
-    }
 }
 
 void APIWrapper::getDataFromURL()
@@ -59,16 +52,8 @@ void APIWrapper::getDataFromURL()
         strlcpy(last_updated, doc["current"]["last_updated"] | "YYYY-MM-DD HH:MM", 17);
         precip_mm = doc["current"]["precip_mm"] | 0;
 
-        for (int i = 2; i >= 0; i--)
-        {
-            if (accumulated_timestamp[i] > timer_ranges[i])
-            {
-                accumulated_precip_mm[i] = 0;
-                accumulated_timestamp[i] = 0;
-            }
-            accumulated_precip_mm[i] += precip_mm;
-            accumulated_timestamp[i] += interval;
-        }
+        buffer[current_timestamp] = precip_mm;
+        current_timestamp = (current_timestamp + 1) % (7 * 24 * 4);
     }
     else
     {
@@ -77,8 +62,13 @@ void APIWrapper::getDataFromURL()
     return;
 }
 
-float APIWrapper::getData(int range)
+float APIWrapper::getData(int period)
 {
-    float accumulated = accumulated_precip_mm[range] * accumulated_timestamp[range] / timer_ranges[range];
+    float accumulated = 0;
+    int initial_index = min(current_timestamp * interval - period, 0);
+    for (int i = initial_index; i < current_timestamp; i++)
+    {
+        accumulated += buffer[(i) % (7 * 24 * 4)];
+    }
     return accumulated;
 }

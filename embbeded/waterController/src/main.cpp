@@ -2,12 +2,16 @@
 // separate in files
 // implement memory access as static method of a class
 // put profile in struct
-// initialize timers and pass pointer to control func
-// update control
-// - remove overflow handling
-// - estimate quantity of water needed after rain based on volume (precip_mm + time elapsed + area of the plant)
-// implement timer to update location data and rain data
-// implement bluetooth handler
+// implement api storage as ring buffer
+// remove call for timestamp
+
+// measure soil humidity
+// initialize timer to handle the api calls
+//  update control
+//  - remove overflow handling
+//  - estimate quantity of water needed after rain based on volume (precip_mm + time elapsed + area of the plant)
+//  implement timer to update location data and rain data
+//  implement bluetooth handler
 
 #include "Memory.h" //storage in flash
 #include "WiFiHandler.h"
@@ -19,11 +23,18 @@ APIWrapper api('https://api.chucknorris.io/jokes/random', 15);
 int n_controllers = 0;
 int sensorPins[4] = {-1, -1, -1, -1};
 int pumpPins[4] = {-1, -1, -1, -1};
-Plant *profiles[4] = {};
+Controller *profiles[4];
+
+hw_timer_t *timerControl = NULL;
 
 void setup()
 {
     // put your setup code here, to run once:
+    // pinMode(LED, OUTPUT);
+    // My_timer = timerBegin(0, 80, true);
+    // timerAttachInterrupt(My_timer, &onTimer, true);
+    // timerAlarmWrite(My_timer, 1000000, true);
+    // timerAlarmEnable(My_timer);
 
     Serial.begin(115200);
     Serial.print('Setting up profiles');

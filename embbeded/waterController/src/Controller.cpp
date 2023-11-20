@@ -3,160 +3,136 @@
 #include "APIWrapper.h"
 #include "Controller.h"
 
-class Controller
+Controller::Controller(int soilMoisturePin, int pumpPin) : soilMoisturePin(soilMoisturePin), pumpPin(pumpPin)
 {
-public:
-    Controller(int soilMoisturePin, int pumpPin) : soilMoisturePin(soilMoisturePin), pumpPin(pumpPin)
+    soilMoistureThreshold = 600; // need to measure
+    pumpFlowRate = 2 * 0.5;      // maximum of 2 L/min
+
+    inUse = false;
+    profileIndex = -1;
+
+    pinMode(pumpPin, OUTPUT);
+    digitalWrite(pumpPin, LOW); // Ensure the pump is initially turned off
+}
+
+bool Controller::getInUse()
+{
+    return inUse;
+}
+
+void Controller::setInUse()
+{
+    if (profileIndex < 0)
     {
-        inUse = false;
-        onCooldown = false;
-        pinMode(pumpPin, OUTPUT);
-        digitalWrite(pumpPin, LOW); // Ensure the pump is initially turned off
+        Serial.println("Profile not set.");
+        return;
+    }
+    updateNextEvent();
+    inUse = true;
+    return;
+}
+
+void Controller::setProfile(int index)
+{
+    profileIndex = index;
+    return;
+}
+
+float Controller::getSoilMoistureData()
+{
+    int measure = analogRead(soilMoisturePin);
+    return (float)measure;
+}
+
+void Controller::turnOnWaterPump(float volume)
+{
+    // volume [mL]
+    int time_ms = (60 * volume) / this->pumpFlowRate;
+
+    digitalWrite(pumpPin, true);
+    delay(time_ms);
+    digitalWrite(pumpPin, false);
+    delay(10);
+    return;
+}
+
+float Controller::calculateVolume(float soilMoistureLevel, float rainLevel)
+{
+    int volumeNeeded = 0;
+
+    struct Profile currentProfile;
+    currentProfile = Memory::getProfile(profileIndex);
+
+    // area of the plant in m2
+    float estimated_area = 0.25;
+
+    if (soilMoistureThreshold == 0)
+    {
+        volumeNeeded = min(int((float)currentProfile.volume - rainLevel * estimated_area * 1000), 0);
+    }
+    else if (getSoilMoistureData() < soilMoistureThreshold)
+    {
+        volumeNeeded = currentProfile.volume;
+    }
+    else
+    {
+        volumeNeeded = 0;
+    }
+    return volumeNeeded;
+}
+
+void Controller::updateNextEvent()
+{
+    struct Profile currentProfile;
+    // read from preference namespace by index
+    currentProfile = Memory::getProfile(profileIndex);
+
+    if (currentProfile.regularPeriod != 0)
+    {
+        nextEvent = timerRead(timerControl) + currentProfile.regularPeriod;
+    }
+    else if (currentProfile.cooldownPeriod != 0)
+    {
+        nextEvent = timerRead(timerControl) + currentProfile.cooldownPeriod;
+    }
+    else
+    {
+        nextEvent = 0;
     }
 
-    void setProfile(int index)
+    return;
+}
+
+void Controller::control(APIWrapper api)
+{
+    if (!inUse || nextEvent > timerRead(timerControl))
     {
-        struct Profile currentProfile;
-        // read from preference namespace by index
-
-        inUse = true;
-
-        if (regularPeriod != 0)
-        {
-            nextEvent = regularPeriod;
-        }
-        else if (cooldownPeriod != 0)
-        {
-            nextEvent = cooldownPeriod;
-        }
-        else
-        {
-            nextEvent = 0;
-        }
-
         return;
     }
 
-    float getSoilMoisture()
+    int rangeAPI;
+    float rainLevel, volumeNeeded;
+
+    Profile currentProfile = Memory::getProfile(profileIndex);
+    float soilMoistureLevel = getSoilMoistureData();
+
+    if (currentProfile.regularPeriod != 0)
     {
-        int val = analogRead(soilMoisturePin);
-        // conversion
-        // float moisture
-        return (float)val;
+        rangeAPI = currentProfile.regularPeriod;
+        rainLevel = api.getData(rangeAPI);
     }
-
-    void turnOnWaterPump(int volume)
+    else if (currentProfile.cooldownPeriod != 0)
     {
-        // volume [mL]
-        int time_ms = (60 * volume) / this->pumpFlowRate;
-
-        digitalWrite(pumpPin, true);
-        delay(time_ms);
-        digitalWrite(pumpPin, false);
-        delay(10);
-        return;
+        rangeAPI = currentProfile.regularPeriod;
+        rainLevel = api.getData(rangeAPI);
     }
-
-    int calculateVolume(int soilMoistureLevel, int rainLevel)
+    else
     {
-        int volume = 0;
-        if (soilMoistureThreshold == 0)
-        {
-            // calculate volume = " timedVolume" - func(rainLevel)
-        }
-        else
-        {
-            // calculate volume = func2(soilMoistureThreshold, soilMoistureLevel, rainLevel)
-        }
-        return volume;
+        rainLevel = 0;
     }
+    volumeNeeded = calculateVolume(soilMoistureLevel, rainLevel);
 
-    void UpdateNextEvent(uint_64_t timer)
-    {
-        if (regularPeriod != 0)
-        {
-            this->nextEvent = this->nextEvent + regularPeriod;
-        }
-        else if (cooldownPeriod != 0)
-        {
-            this->nextEvent = this->nextEvent + cooldownPeriod;
-            this->onCooldown = true;
-        }
-
-        this->nextEvent = this->nextEvent % timer_max_value;
-
-        return;
-    }
-
-    void control(float rainData)
-    {
-        if (!this->inUse)
-        {
-            return;
-        }
-
-        int soilMoistureLevel, rainLevel, pumpVolume;
-        uint_64_t timer;
-
-        // get_timer() from esp32 api
-
-        if (this->soilMoistureThreshold != 0)
-        {
-
-            // if (this->nextEvent != 0 || this->onCooldown)
-            //{
-            //     return;
-            // }
-
-            if (nextEvent != 0)
-            {
-                if ((timer < nextEvent && (nextEvent - timer) < timer_max_cooldown) || timer - nextEvent > timer_overflow_th)
-                {
-                    return; // cooldown
-                }
-            }
-
-            soilMoistureLevel = getSoilMoisture();
-            pumpVolume = calculateVolume(soilMoistureLevel, rainData);
-
-            if (pumpVolume != 0)
-            {
-                this->turnOnWaterPump(pumpVolume);
-
-                this->UpdateNextEvent(timer);
-            }
-        }
-        else
-        {
-
-            if (timer > nextEvent || nextEvent - timer > timer_overflow_th)
-            {
-                rainLevel = getRainFromAPI();
-
-                pumpVolume = calculateVolume(0, rainLevel);
-
-                turnOnWaterPump(pumpVolume);
-                UpdateNextEvent(timer)
-            }
-        }
-        return;
-    }
-
-    bool inUse;
-
-private:
-    // pin specific
-    int soilMoisturePin;
-    int pumpPin;
-    // peripherals specific
-    int soilMoistureThreshold;
-    float pumpFlowRate; // flow rate [L/min]
-    // profile
-    int volume;
-    int regularPeriod;  // between watering
-    int cooldownPeriod; // without watering
-    bool isOutside;
-    // state
-    int nextEvent;
-    int onCooldown;
-};
+    turnOnWaterPump(volumeNeeded);
+    updateNextEvent();
+    return;
+}
