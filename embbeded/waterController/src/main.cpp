@@ -76,7 +76,7 @@ void loop()
     // put your main code here, to run repeatedly:
     for (int i = 0; i < Controller::getNControllers(); i++)
     {
-        controllers[i].control(api);
+        controllers[i].control();
     }
     // delay(10 * 60 * 1000); // 10 minutes
     delay(30 * 1000); // 30 seconds

@@ -98,7 +98,7 @@ void Controller::updateNextEvent()
     return;
 }
 
-void Controller::control(APIWrapper api)
+void Controller::control()
 {
     if (!inUse || nextEvent > timerValue)
     {

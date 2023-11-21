@@ -2,6 +2,7 @@
 #define CONTROLLER_H
 
 extern uint64_t timerValue;
+extern APIWrapper api;
 
 class Controller
 {
@@ -26,7 +27,7 @@ public:
 
     /* Controls the digital pin of the water pump. If these pins are in use - refer to function setInUse() - and the timer value has passed the next event scheduled, the function estimates the amount of water needed based on the moisture measurement or/and the rain history.
      */
-    void control(APIWrapper api);
+    void control();
 
     /* Set the current number of controllers used.
      */
