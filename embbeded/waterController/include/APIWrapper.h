@@ -8,7 +8,7 @@
 class APIWrapper
 {
 public:
-    APIWrapper(int interval);
+    APIWrapper();
     void getDataFromURL();
     /* Returns the average preciptation for a given period in minutes.
      * The precision depends on the frequency in which the api is called. Default is one request each 15 minutes.

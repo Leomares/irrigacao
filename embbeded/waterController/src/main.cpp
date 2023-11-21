@@ -12,7 +12,7 @@
 #include "WiFiHandler.h"
 #include "APIWrapper.h"
 #include "Controller.h"
-#include "secrets.h"
+#include "BLEHandler.h"
 
 APIWrapper api;
 
@@ -44,7 +44,7 @@ void setup()
     // put your setup code here, to run once:
 
     // set default params
-    Memory::setWiFiConfig(home_ssid, home_password);
+    Memory::setDefaultWiFiConfig();
     Memory::setDefaultProfile();
 
     // controller config

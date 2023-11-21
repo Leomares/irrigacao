@@ -12,9 +12,9 @@
 DynamicJsonDocument doc(1024);
 HTTPClient http;
 
-APIWrapper::APIWrapper(int interval = 15)
+APIWrapper::APIWrapper()
 {
-    this->interval = interval;
+    interval = 15;
     url = api_url;
 
     precip_mm = 0.0;

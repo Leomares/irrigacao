@@ -26,6 +26,8 @@ public:
 
     static void setDefaultProfile();
 
+    static void setDefaultWiFiConfig();
+
     static void resetNVS();
 };
 

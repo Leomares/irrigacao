@@ -2,6 +2,7 @@
 #include <Preferences.h>
 #include <nvs_flash.h>
 #include "Memory.h"
+#include "secrets.h"
 
 Preferences prefs;
 
@@ -57,8 +58,10 @@ Profile Memory::getProfile(int index)
     {
         Serial.print("Index ");
         Serial.print(index);
-        Serial.println(" is not a valid profile.");
-        return;
+        Serial.println(" is not a valid profile. Returning the default one");
+        prefs.end();
+        sprintf(profile_name, "profile%d", -1);
+        prefs.begin(profile_name, true);
     }
     profile.isOutside = prefs.getBool("isOutside", false);
     profile.volume = prefs.getInt("volume", 0);
@@ -79,6 +82,11 @@ void Memory::setDefaultProfile()
     return;
 }
 
+void Memory::setDefaultWiFiConfig()
+{
+    Memory::setWiFiConfig(home_ssid, home_password);
+    return;
+}
 void Memory::resetNVS()
 {
     nvs_flash_erase(); // erase the NVS partition and...
