@@ -22,11 +22,6 @@ bool Controller::getInUse()
 
 void Controller::setInUse()
 {
-    if (profileIndex < 0)
-    {
-        Serial.println("Profile not set.");
-        return;
-    }
     updateNextEvent();
     inUse = true;
     return;
@@ -89,11 +84,11 @@ void Controller::updateNextEvent()
 
     if (currentProfile.regularPeriod != 0)
     {
-        nextEvent = timerRead(timerControl) + currentProfile.regularPeriod;
+        nextEvent = timerValue + currentProfile.regularPeriod;
     }
     else if (currentProfile.cooldownPeriod != 0)
     {
-        nextEvent = timerRead(timerControl) + currentProfile.cooldownPeriod;
+        nextEvent = timerValue + currentProfile.cooldownPeriod;
     }
     else
     {
@@ -105,7 +100,7 @@ void Controller::updateNextEvent()
 
 void Controller::control(APIWrapper api)
 {
-    if (!inUse || nextEvent > timerRead(timerControl))
+    if (!inUse || nextEvent > timerValue)
     {
         return;
     }
@@ -136,3 +131,21 @@ void Controller::control(APIWrapper api)
     updateNextEvent();
     return;
 }
+
+void Controller::addNControllers(int n)
+{
+    if (n > 4)
+    {
+        Serial.println("Too many simultaneous controllers");
+        return;
+    }
+    nControllers = n;
+    return;
+}
+
+int Controller::getNControllers()
+{
+    return nControllers;
+}
+
+int Controller::nControllers = 0;

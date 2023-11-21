@@ -24,6 +24,8 @@ public:
 
     static Profile getProfile(int index);
 
+    static void setDefaultProfile();
+
     static void resetNVS();
 };
 

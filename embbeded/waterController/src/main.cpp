@@ -1,9 +1,4 @@
-// todo
-// separate in files
-// implement memory access as static method of a class
-// put profile in struct
-// implement api storage as ring buffer
-// remove call for timestamp
+
 
 // measure soil humidity
 // initialize timer to handle the api calls
@@ -13,62 +8,76 @@
 //  implement timer to update location data and rain data
 //  implement bluetooth handler
 
-#include "Memory.h" //storage in flash
+#include "Memory.h"
 #include "WiFiHandler.h"
-#include "APIWrapper.h" //storage in flash
-#include "Controller.h" //storage in flash
+#include "APIWrapper.h"
+#include "Controller.h"
+#include "secrets.h"
 
-APIWrapper api('https://api.chucknorris.io/jokes/random', 15);
+APIWrapper api;
 
-int n_controllers = 0;
-int sensorPins[4] = {-1, -1, -1, -1};
-int pumpPins[4] = {-1, -1, -1, -1};
-Controller *profiles[4];
+const int sensorPins[4] = {34, 35, 36, 39}; // input only pins
+const int pumpPins[4] = {32, 33, 25, 26};
+Controller controllers[4] = {
+    Controller(sensorPins[0], pumpPins[0]),
+    Controller(sensorPins[1], pumpPins[1]),
+    Controller(sensorPins[2], pumpPins[2]),
+    Controller(sensorPins[3], pumpPins[3])};
 
-hw_timer_t *timerControl = NULL;
+hw_timer_t *timer = NULL;
+uint64_t timerValue = 0;
+hw_timer_t *timerAPI = NULL;
+
+void IRAM_ATTR onTimer()
+{
+    timerValue++;
+    return;
+}
+void IRAM_ATTR onTimerAPI()
+{
+    api.getDataFromURL();
+    return;
+}
 
 void setup()
 {
     // put your setup code here, to run once:
-    // pinMode(LED, OUTPUT);
-    // My_timer = timerBegin(0, 80, true);
-    // timerAttachInterrupt(My_timer, &onTimer, true);
-    // timerAlarmWrite(My_timer, 1000000, true);
-    // timerAlarmEnable(My_timer);
 
-    Serial.begin(115200);
-    Serial.print('Setting up profiles');
-    for (int i = 0; i < 4; i++)
+    // set default params
+    Memory::setWiFiConfig(home_ssid, home_password);
+    Memory::setDefaultProfile();
+
+    // controller config
+    Controller::addNControllers(1);
+    for (int i = 0; i < Controller::getNControllers(); i++)
     {
-        // update to read the first variable of a profile on flash?
-        // create a namespace to load the last profile used on these pins
-        if (sensorPins[i] < 0 || pumpPins[i] < 0)
-        {
-            break;
-        }
-        n_controllers++;
-        profiles[i] = new Plant(sensorPins[i], pumpPins[i]);
-        profiles[i]->setProfile(i);
+        controllers[i].setInUse();
     }
 
-    // set bluetooth
+    // timer config
+    timer = timerBegin(0, 40000, true);
+    timerAttachInterrupt(timer, &onTimer, true);
+    timerAlarmWrite(timer, 2000, true);
+    timerAPI = timerBegin(1, 40000, true);
+    timerAttachInterrupt(timer, &onTimerAPI, true);
+    timerAlarmWrite(timer, 2000 * 60 * 15, true); // 15 minutes
+
+    // serial config
+    Serial.begin(115200);
+
+    // bluetooth config
+
+    timerAlarmEnable(timer);
+    timerAlarmEnable(timerAPI);
 }
 
 void loop()
 {
     // put your main code here, to run repeatedly:
-    api.getDataFromURL("value");
-    Serial.println(api.getData());
-    if (WiFi.status() != WL_CONNECTED)
+    for (int i = 0; i < Controller::getNControllers(); i++)
     {
-        api.connectWifi();
-    }
-    api.getDataFromURL();
-    char *rainData = api.getRainData("value");
-    for (int i = 0; i < n_controllers; i++)
-    {
-        profiles[i].control(rainData);
+        controllers[i].control(api);
     }
     // delay(10 * 60 * 1000); // 10 minutes
-    delay(10 * 1000);
+    delay(30 * 1000); // 30 seconds
 }

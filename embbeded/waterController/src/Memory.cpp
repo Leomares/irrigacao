@@ -68,6 +68,17 @@ Profile Memory::getProfile(int index)
     return profile;
 }
 
+void Memory::setDefaultProfile()
+{
+    Profile currentProfile;
+    currentProfile.volume = 200;
+    currentProfile.regularPeriod = 0;
+    currentProfile.cooldownPeriod = 1;
+    currentProfile.isOutside = false;
+    Memory::setProfile(-1, currentProfile);
+    return;
+}
+
 void Memory::resetNVS()
 {
     nvs_flash_erase(); // erase the NVS partition and...

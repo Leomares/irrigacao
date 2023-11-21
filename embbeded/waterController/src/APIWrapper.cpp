@@ -25,6 +25,11 @@ APIWrapper::APIWrapper(int interval = 15)
 
 void APIWrapper::getDataFromURL()
 {
+    if (!WiFiHandler::isConnected())
+    {
+        WiFiHandler::connectWifi();
+    }
+
     if (WiFiHandler::isConnected())
     {
         Serial.println("Getting current data...");

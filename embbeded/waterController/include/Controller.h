@@ -1,7 +1,7 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-extern hw_timer_t *timerControl;
+extern uint64_t timerValue;
 
 class Controller
 {
@@ -28,6 +28,12 @@ public:
      */
     void control(APIWrapper api);
 
+    /* Set the current number of controllers used.
+     */
+    static void addNControllers(int n);
+
+    static int getNControllers();
+
 private:
     // pin specific
     int soilMoisturePin;
@@ -40,6 +46,8 @@ private:
     // state of the control
     bool inUse;
     uint64_t nextEvent;
+    // number of controllers
+    static int nControllers;
 };
 
 #endif
