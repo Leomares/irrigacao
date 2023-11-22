@@ -10,9 +10,9 @@ public:
 
     static void setProfileInfo(String profileString);
 
-    static void setWifiInfo(String wifiString);
+    static void setWiFiInfo(String wifiString);
 
-    static void setControllerInfo(String controllerString);
+    static void setControllerInfo(int controlIndex, String controllerString);
 
 private:
     int connected;

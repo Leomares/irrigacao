@@ -5,8 +5,8 @@
 
 Controller::Controller(int soilMoisturePin, int pumpPin) : soilMoisturePin(soilMoisturePin), pumpPin(pumpPin)
 {
-    soilMoistureThreshold = 600; // need to measure
-    pumpFlowRate = 2 * 0.5;      // maximum of 2 L/min
+    soilMoistureThreshold = 2000; // need to measure
+    pumpFlowRate = 2 * 0.5;       // maximum of 2 L/min
 
     inUse = false;
     profileIndex = -1;
