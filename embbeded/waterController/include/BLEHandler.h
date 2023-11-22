@@ -21,7 +21,7 @@ private:
 
     NimBLEService *pWifiService;
     NimBLEService *pProfileService;
-    NimBLEService *pControllerService;
+    NimBLEService *pControllerService[4];
 
     NimBLECharacteristic *pWifiWriteCharacteristic;
     NimBLECharacteristic *pWifiReadCharacteristic;
@@ -29,8 +29,8 @@ private:
     NimBLECharacteristic *pProfileWriteCharacteristic;
     NimBLECharacteristic *pProfileReadCharacteristic;
 
-    NimBLECharacteristic *pControllerWriteCharacteristic;
-    NimBLECharacteristic *pControllerReadCharacteristic;
+    NimBLECharacteristic *pControllerWriteCharacteristic[4];
+    NimBLECharacteristic *pControllerReadCharacteristic[4];
 
     NimBLEAdvertising *pAdvertising;
 };

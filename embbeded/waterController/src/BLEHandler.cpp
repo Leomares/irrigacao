@@ -5,11 +5,29 @@
 #include "BLEHandler.h"
 
 // define UUIDS for each characteristics/services
-#define S_WIFI "0"
-#define S_PROF "0"
-#define S_CONT "0"
-#define C_PROFILE_WRITE_UUID "0"
-#define C_WIFI_WRITE_UUID "0"
+#define S_WIFI_UUID "0"
+#define C_WIFI_W_UUID "0"
+#define C_WIFI_R_UUID "0"
+
+#define S_PROFILE_UUID "0"
+#define C_PROFILE_W_UUID "0"
+#define C_PROFILE_R_UUID "0"
+
+#define S_CONTROL_1_UUID "0"
+#define C_CONTROL_1_W_UUID "0"
+#define C_CONTROL_1_R_UUID "0"
+
+#define S_CONTROL_2_UUID "0"
+#define C_CONTROL_2_W_UUID "0"
+#define C_CONTROL_2_R_UUID "0"
+
+#define S_CONTROL_3_UUID "0"
+#define C_CONTROL_3_W_UUID "0"
+#define C_CONTROL_3_R_UUID "0"
+
+#define S_CONTROL_4_UUID "0"
+#define C_CONTROL_4_W_UUID "0"
+#define C_CONTROL_4_R_UUID "0"
 
 // https://registry.platformio.org/libraries/h2zero/NimBLE-Arduino/examples/NimBLE_Server/NimBLE_Server.ino
 
@@ -23,7 +41,7 @@ void BLEHandler::setProfileInfo(String profileString)
 {
     Profile *currentProfile = new Profile;
     int index;
-    // desserialize
+    // deserialize
     Memory::setProfile(index, *currentProfile);
     delete currentProfile;
     return;
@@ -32,7 +50,7 @@ void BLEHandler::setProfileInfo(String profileString)
 void BLEHandler::setWifiInfo(String wifiString)
 {
     String ssid, password;
-    // desserialize
+    // deserialize
     Memory::setWiFiConfig(ssid, password);
     return;
 }
@@ -73,9 +91,7 @@ static CharacteristicCallbacks chrCallbacks;
 
 BLEHandler::BLEHandler()
 {
-
     Serial.println("Starting NimBLE Server");
-
     /** sets device name */
     NimBLEDevice::init("NimBLE-irrigacao");
 
@@ -90,7 +106,7 @@ BLEHandler::BLEHandler()
 
     pServer = NimBLEDevice::createServer();
 
-    pWifiService = pServer->createService(S_WIFI); // put standard UUID later
+    pWifiService = pServer->createService(S_WIFI_UUID); // put standard UUID later
     pWifiWriteCharacteristic = pWifiService->createCharacteristic(
         "WRITE",
         NIMBLE_PROPERTY::WRITE);
@@ -102,7 +118,7 @@ BLEHandler::BLEHandler()
     pWifiWriteCharacteristic->setCallbacks(&chrCallbacks);
     pWifiReadCharacteristic->setCallbacks(&chrCallbacks);
 
-    pProfileService = pServer->createService(S_PROF); // put standard UUID later
+    pProfileService = pServer->createService(S_PROF_UUID); // put standard UUID later
     pProfileWriteCharacteristic = pProfileService->createCharacteristic(
         "WRITE",
         NIMBLE_PROPERTY::WRITE);
@@ -114,14 +130,16 @@ BLEHandler::BLEHandler()
     pProfileWriteCharacteristic->setCallbacks(&chrCallbacks);
     pProfileReadCharacteristic->setCallbacks(&chrCallbacks);
 
-    pControllerService = pServer->createService(S_CONT); // put standard UUID later
-    pControllerWriteCharacteristic = pControllerService->createCharacteristic(
-        "WRITE",
-        NIMBLE_PROPERTY::WRITE);
+    pControllerService[0] = pServer->createService(S_CONT_1); // put standard UUID later
+    pControllerService[1] = pServer->createService(S_CONT_2); // put standard UUID later
+    pControllerService[2] = pServer->createService(S_CONT_3); // put standard UUID later
+    pControllerService[3] = pServer->createService(S_CONT_4); // put standard UUID later
+    pControllerWriteCharacteristic[0] = pControllerService[0]->createCharacteristic("WRITE", NIMBLE_PROPERTY::WRITE);
+    pControllerWriteCharacteristic[1] = pControllerService[1]->createCharacteristic("WRITE", NIMBLE_PROPERTY::WRITE);
+    pControllerWriteCharacteristic[2] = pControllerService[2]->createCharacteristic("WRITE", NIMBLE_PROPERTY::WRITE);
+    pControllerWriteCharacteristic[3] = pControllerService[3]->createCharacteristic("WRITE", NIMBLE_PROPERTY::WRITE);
 
-    pControllerReadCharacteristic = pControllerService->createCharacteristic(
-        "READ",
-        NIMBLE_PROPERTY::READ);
+    pControllerReadCharacteristic = pControllerService->createCharacteristic("READ", NIMBLE_PROPERTY::READ);
 
     pControllerWriteCharacteristic->setCallbacks(&chrCallbacks);
     pControllerReadCharacteristic->setCallbacks(&chrCallbacks);
@@ -129,7 +147,7 @@ BLEHandler::BLEHandler()
     /** Start the services when finished creating all Characteristics and Descriptors */
     pWifiService->start();
     pProfileService->start();
-    pControllerService->start();
+    pControllerService[0]->start();
 
     pAdvertising = NimBLEDevice::getAdvertising();
     /** Add the services to the advertisment data **/
