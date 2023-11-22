@@ -52,7 +52,7 @@ void WiFiHandler::connectWifi()
     if (ssid != "")
     {
         WiFi.mode(WIFI_STA);
-        WiFi.begin(ssid, password);
+        WiFi.begin(ssid.c_str(), password.c_str());
         Serial.println("Setting up Wifi.");
 
         // Wait for connection
