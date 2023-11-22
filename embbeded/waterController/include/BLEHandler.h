@@ -8,25 +8,31 @@ class BLEHandler
 public:
     BLEHandler();
 
-    static void setProfileInfo(int n, Controller controllerN);
+    static void setProfileInfo(String profileString);
 
-    static void setWifiInfo(String ssid);
+    static void setWifiInfo(String wifiString);
 
-    private:
+    static void setControllerInfo(String controllerString);
+
+private:
     int connected;
 
-    static NimBLEServer* pServer;
+    static NimBLEServer *pServer;
 
-    NimBLEService* pWifiService;
-    NimBLEService* pProfileService;
+    NimBLEService *pWifiService;
+    NimBLEService *pProfileService;
+    NimBLEService *pControllerService;
 
-    NimBLECharacteristic* pWifiWriteCharacteristic;
-    NimBLECharacteristic* pWifiReadCharacteristic;
+    NimBLECharacteristic *pWifiWriteCharacteristic;
+    NimBLECharacteristic *pWifiReadCharacteristic;
 
-    NimBLECharacteristic* pProfileWriteCharacteristic;
-    NimBLECharacteristic* pProfileReadCharacteristic;
+    NimBLECharacteristic *pProfileWriteCharacteristic;
+    NimBLECharacteristic *pProfileReadCharacteristic;
 
-    NimBLEAdvertising* pAdvertising;
+    NimBLECharacteristic *pControllerWriteCharacteristic;
+    NimBLECharacteristic *pControllerReadCharacteristic;
+
+    NimBLEAdvertising *pAdvertising;
 };
 
 #endif
