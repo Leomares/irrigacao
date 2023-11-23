@@ -3,6 +3,8 @@
 #include "APIWrapper.h"
 #include "Controller.h"
 
+extern APIWrapper api;
+
 Controller::Controller(int soilMoisturePin, int pumpPin) : soilMoisturePin(soilMoisturePin), pumpPin(pumpPin)
 {
     soilMoistureThreshold = 2000; // need to measure

@@ -15,6 +15,7 @@
 #include "BLEHandler.h"
 
 APIWrapper api;
+BLEHandler ble;
 
 const int sensorPins[4] = {34, 35, 36, 39}; // input only pins
 const int pumpPins[4] = {32, 33, 25, 26};
@@ -44,6 +45,7 @@ void setup()
     // put your setup code here, to run once:
 
     // set default params
+    Memory::resetNVS();
     Memory::setDefaultWiFiConfig();
     Memory::setDefaultProfile();
 

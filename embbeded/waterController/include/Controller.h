@@ -2,7 +2,6 @@
 #define CONTROLLER_H
 
 extern uint64_t timerValue;
-extern APIWrapper api;
 
 class Controller
 {

@@ -1,6 +1,5 @@
 #include <Arduino.h>
 #include "Memory.h"
-// #include "APIWrapper.h" // not used
 #include "Controller.h"
 #include "BLEHandler.h"
 
@@ -16,30 +15,31 @@ const char *S_CONTROL_UUID[4] = {"0", "0", "0", "0"};
 const char *C_CONTROL_W_UUID[4] = {"0", "0", "0", "0"};
 const char *C_CONTROL_R_UUID[4] = {"0", "0", "0", "0"};
 
-// define UUIDS for each characteristics/services
-// #define S_WIFI_UUID "0"
-// #define C_WIFI_W_UUID "0"
-// #define C_WIFI_R_UUID "0"
-//
-// #define S_PROFILE_UUID "0"
-// #define C_PROFILE_W_UUID "0"
-// #define C_PROFILE_R_UUID "0"
-//
-// #define S_CONTROL_1_UUID "0"
-// #define C_CONTROL_1_W_UUID "0"
-// #define C_CONTROL_1_R_UUID "0"
-//
-// #define S_CONTROL_2_UUID "0"
-// #define C_CONTROL_2_W_UUID "0"
-// #define C_CONTROL_2_R_UUID "0"
-//
-// #define S_CONTROL_3_UUID "0"
-// #define C_CONTROL_3_W_UUID "0"
-// #define C_CONTROL_3_R_UUID "0"
-//
-// #define S_CONTROL_4_UUID "0"
-// #define C_CONTROL_4_W_UUID "0"
-// #define C_CONTROL_4_R_UUID "0"
+const char *S_WIFI_UUID = "2a38798e-8a3e-11ee-b9d1-0242ac120002";
+const char *C_WIFI_W_UUID = "2a387bdc-8a3e-11ee-b9d1-0242ac120002";
+const char *C_WIFI_R_UUID = "2a387d08-8a3e-11ee-b9d1-0242ac120002";
+
+const char *S_PROFILE_UUID = "4e0b4756-8a3e-11ee-b9d1-0242ac120002";
+const char *C_PROFILE_W_UUID = "4e0b4a62-8a3e-11ee-b9d1-0242ac120002";
+const char *C_PROFILE_R_UUID = "4e0b4bde-8a3e-11ee-b9d1-0242ac120002";
+
+const char *S_CONTROL_UUID[4] = {
+    "8f904730-8a3e-11ee-b9d1-0242ac120002",
+    "d6b23984-8a3e-11ee-b9d1-0242ac120002",
+    "d6b23ee8-8a3e-11ee-b9d1-0242ac120002",
+    "d6b24050-8a3e-11ee-b9d1-0242ac120002"};
+
+const char *C_CONTROL_W_UUID[4] = {
+    "8f904a32-8a3e-11ee-b9d1-0242ac120002",
+    "f91de95a-8a3e-11ee-b9d1-0242ac120002",
+    "f91decde-8a3e-11ee-b9d1-0242ac120002",
+    "f91deed2-8a3e-11ee-b9d1-0242ac120002"};
+
+const char *C_CONTROL_R_UUID[4] = {
+    "8f904b86-8a3e-11ee-b9d1-0242ac120002",
+    "c6a16c68-8a3e-11ee-b9d1-0242ac120002",
+    "c6a1700a-8a3e-11ee-b9d1-0242ac120002",
+    "c6a1719a-8a3e-11ee-b9d1-0242ac120002"};
 
 extern Controller controllers[4];
 
@@ -51,7 +51,7 @@ extern Controller controllers[4];
 /** Handler class for characteristic actions */
 // test
 
-void BLEHandler::setProfileInfo(String profileString)
+void setProfileInfo(String profileString)
 {
     Profile *currentProfile = new Profile;
     int index;
@@ -61,7 +61,7 @@ void BLEHandler::setProfileInfo(String profileString)
     return;
 }
 
-void BLEHandler::setWiFiInfo(String wifiString)
+void setWiFiInfo(String wifiString)
 {
     String ssid, password;
     // deserialize
@@ -69,7 +69,7 @@ void BLEHandler::setWiFiInfo(String wifiString)
     return;
 }
 
-void BLEHandler::setControllerInfo(int controlIndex, String controllerString)
+void setControllerInfo(int controlIndex, String controllerString)
 {
     bool inUseControl;
     int profileIndexControl;
@@ -100,27 +100,27 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
     {
         if (pCharacteristic->getUUID().toString() == C_PROFILE_W_UUID)
         {
-            BLEHandler::setProfileInfo(pCharacteristic->getValue());
+            setProfileInfo(pCharacteristic->getValue());
         }
         else if (pCharacteristic->getUUID().toString() == C_WIFI_W_UUID)
         {
-            BLEHandler::setWiFiInfo(pCharacteristic->getValue());
+            setWiFiInfo(pCharacteristic->getValue());
         }
         else if (pCharacteristic->getUUID().toString() == C_CONTROL_W_UUID[0])
         {
-            BLEHandler::setControllerInfo(0, pCharacteristic->getValue());
+            setControllerInfo(0, pCharacteristic->getValue());
         }
         else if (pCharacteristic->getUUID().toString() == C_CONTROL_W_UUID[1])
         {
-            BLEHandler::setControllerInfo(1, pCharacteristic->getValue());
+            setControllerInfo(1, pCharacteristic->getValue());
         }
         else if (pCharacteristic->getUUID().toString() == C_CONTROL_W_UUID[2])
         {
-            BLEHandler::setControllerInfo(2, pCharacteristic->getValue());
+            setControllerInfo(2, pCharacteristic->getValue());
         }
         else if (pCharacteristic->getUUID().toString() == C_CONTROL_W_UUID[3])
         {
-            BLEHandler::setControllerInfo(3, pCharacteristic->getValue());
+            setControllerInfo(3, pCharacteristic->getValue());
         }
         Serial.print(pCharacteristic->getUUID().toString().c_str());
         Serial.print(": onWrite(), value: ");
@@ -137,6 +137,8 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
 
 static CharacteristicCallbacks chrCallbacks;
 
+NimBLEServer *BLEHandler::pServer = NimBLEDevice::createServer();
+
 BLEHandler::BLEHandler()
 {
     Serial.println("Starting NimBLE Server");
@@ -152,9 +154,7 @@ BLEHandler::BLEHandler()
 
     NimBLEDevice::setSecurityIOCap(BLE_HS_IO_NO_INPUT_OUTPUT);
 
-    pServer = NimBLEDevice::createServer();
-
-    pWifiService = pServer->createService(S_WIFI_UUID); // put standard UUID later
+    pWifiService = BLEHandler::pServer->createService(S_WIFI_UUID);
     pWifiWriteCharacteristic = pWifiService->createCharacteristic(C_WIFI_W_UUID, NIMBLE_PROPERTY::WRITE);
 
     pWifiReadCharacteristic = pWifiService->createCharacteristic(C_WIFI_R_UUID, NIMBLE_PROPERTY::READ);
@@ -162,7 +162,7 @@ BLEHandler::BLEHandler()
     pWifiWriteCharacteristic->setCallbacks(&chrCallbacks);
     pWifiReadCharacteristic->setCallbacks(&chrCallbacks);
 
-    pProfileService = pServer->createService(S_PROFILE_UUID); // put standard UUID later
+    pProfileService = BLEHandler::pServer->createService(S_PROFILE_UUID);
     pProfileWriteCharacteristic = pProfileService->createCharacteristic(
         C_PROFILE_W_UUID,
         NIMBLE_PROPERTY::WRITE);
@@ -176,7 +176,7 @@ BLEHandler::BLEHandler()
 
     for (int i = 0; i < 4; i++)
     {
-        pControllerService[i] = pServer->createService(S_CONTROL_UUID[i]);
+        pControllerService[i] = BLEHandler::pServer->createService(S_CONTROL_UUID[i]);
         pControllerWriteCharacteristic[i] = pControllerService[i]->createCharacteristic(C_CONTROL_W_UUID[i], NIMBLE_PROPERTY::WRITE);
         pControllerReadCharacteristic[i] = pControllerService[i]->createCharacteristic(C_CONTROL_R_UUID[i], NIMBLE_PROPERTY::READ);
         pControllerWriteCharacteristic[i]->setCallbacks(&chrCallbacks);

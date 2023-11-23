@@ -8,12 +8,6 @@ class BLEHandler
 public:
     BLEHandler();
 
-    static void setProfileInfo(String profileString);
-
-    static void setWiFiInfo(String wifiString);
-
-    static void setControllerInfo(int controlIndex, String controllerString);
-
 private:
     int connected;
 
