@@ -3,18 +3,6 @@
 #include "Controller.h"
 #include "BLEHandler.h"
 
-const char *S_WIFI_UUID = "0";
-const char *C_WIFI_W_UUID = "0";
-const char *C_WIFI_R_UUID = "0";
-
-const char *S_PROFILE_UUID = "0";
-const char *C_PROFILE_W_UUID = "0";
-const char *C_PROFILE_R_UUID = "0";
-
-const char *S_CONTROL_UUID[4] = {"0", "0", "0", "0"};
-const char *C_CONTROL_W_UUID[4] = {"0", "0", "0", "0"};
-const char *C_CONTROL_R_UUID[4] = {"0", "0", "0", "0"};
-
 const char *S_WIFI_UUID = "2a38798e-8a3e-11ee-b9d1-0242ac120002";
 const char *C_WIFI_W_UUID = "2a387bdc-8a3e-11ee-b9d1-0242ac120002";
 const char *C_WIFI_R_UUID = "2a387d08-8a3e-11ee-b9d1-0242ac120002";
