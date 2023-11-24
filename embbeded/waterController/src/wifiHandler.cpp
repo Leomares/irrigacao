@@ -1,3 +1,6 @@
+#define WIFI_USE 1
+#if WIFI_USE
+
 #include <Arduino.h>
 #include <WiFi.h>
 #include "WiFiHandler.h"
@@ -84,3 +87,4 @@ bool WiFiHandler::isConnected()
 {
     return WiFi.status() == WL_CONNECTED;
 }
+#endif

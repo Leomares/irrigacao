@@ -1,3 +1,9 @@
+#define CONTROLLER_USE 0
+#define API_USE 0
+#define BLE_USE 0
+
+#if BLE_USE
+
 #include <Arduino.h>
 #include "Memory.h"
 #include "Controller.h"
@@ -29,7 +35,17 @@ const char *C_CONTROL_R_UUID[4] = {
     "c6a1700a-8a3e-11ee-b9d1-0242ac120002",
     "c6a1719a-8a3e-11ee-b9d1-0242ac120002"};
 
+#if CONTROLLER_USE
 extern Controller controllers[4];
+#else
+const int sensorPins[4] = {34, 35, 36, 39}; // input only pins
+const int pumpPins[4] = {32, 33, 25, 26};
+Controller controllers[4] = {
+    Controller(sensorPins[0], pumpPins[0]),
+    Controller(sensorPins[1], pumpPins[1]),
+    Controller(sensorPins[2], pumpPins[2]),
+    Controller(sensorPins[3], pumpPins[3])};
+#endif
 
 // https://registry.platformio.org/libraries/h2zero/NimBLE-Arduino/examples/NimBLE_Server/NimBLE_Server.ino
 
@@ -195,3 +211,5 @@ BLEHandler::BLEHandler()
 
     Serial.println("Advertising Started");
 }
+
+#endif

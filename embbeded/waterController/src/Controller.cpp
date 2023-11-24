@@ -1,3 +1,6 @@
+#define CONTROLLER_USE 0
+#if CONTROLLER_USE
+
 #include <Arduino.h>
 #include "Memory.h"
 #include "APIWrapper.h"
@@ -151,3 +154,5 @@ int Controller::getNControllers()
 }
 
 int Controller::nControllers = 0;
+
+#endif

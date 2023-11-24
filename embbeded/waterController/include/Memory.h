@@ -1,8 +1,6 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
-#include <Arduino.h>
-
 struct Profile
 {
     bool isOutside;

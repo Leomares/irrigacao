@@ -1,3 +1,7 @@
+#define API_USE 1
+
+#if API_USE
+
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Arduino.h>
@@ -77,3 +81,5 @@ float APIWrapper::getData(int period)
     }
     return accumulated;
 }
+
+#endif
