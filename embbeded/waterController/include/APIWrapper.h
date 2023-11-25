@@ -19,8 +19,6 @@ private:
     const char *url;
     // interval between api requests in minutes.
     int interval;
-    // timestamp of last api request with format "YYYY-MM-DD HH:MM".
-    char *last_updated;
     float precip_mm;
     int current_timestamp;
     // accumulated preciptation data.

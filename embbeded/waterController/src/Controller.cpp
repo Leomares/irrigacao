@@ -1,4 +1,4 @@
-#define CONTROLLER_USE 0
+#define CONTROLLER_USE 1
 #if CONTROLLER_USE
 
 #include <Arduino.h>
@@ -105,8 +105,10 @@ void Controller::updateNextEvent()
 
 void Controller::control()
 {
+    Serial.println("Controller control engaged");
     if (!inUse || nextEvent > timerValue)
     {
+        Serial.println("Controller not in use");
         return;
     }
 

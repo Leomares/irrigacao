@@ -48,6 +48,7 @@ void WiFiHandler::getSerialWifiConfig()
 
 void WiFiHandler::connectWifi()
 {
+    Serial.println("ConnectWifi function");
     // read wifi config
     String ssid, password;
     Memory::getWiFiConfig(&ssid, &password);

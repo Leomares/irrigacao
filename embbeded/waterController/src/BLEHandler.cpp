@@ -1,6 +1,6 @@
-#define CONTROLLER_USE 0
-#define API_USE 0
-#define BLE_USE 0
+#define CONTROLLER_USE 1
+#define API_USE 1
+#define BLE_USE 1
 
 #if BLE_USE
 
@@ -8,6 +8,23 @@
 #include "Memory.h"
 #include "Controller.h"
 #include "BLEHandler.h"
+
+NimBLEServer *pServer;
+
+NimBLEService *pWifiService;
+NimBLEService *pProfileService;
+NimBLEService *pControllerService[4];
+
+NimBLECharacteristic *pWifiWriteCharacteristic;
+NimBLECharacteristic *pWifiReadCharacteristic;
+
+NimBLECharacteristic *pProfileWriteCharacteristic;
+NimBLECharacteristic *pProfileReadCharacteristic;
+
+NimBLECharacteristic *pControllerWriteCharacteristic[4];
+NimBLECharacteristic *pControllerReadCharacteristic[4];
+
+NimBLEAdvertising *pAdvertising;
 
 const char *S_WIFI_UUID = "2a38798e-8a3e-11ee-b9d1-0242ac120002";
 const char *C_WIFI_W_UUID = "2a387bdc-8a3e-11ee-b9d1-0242ac120002";
@@ -141,14 +158,14 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
 
 static CharacteristicCallbacks chrCallbacks;
 
-NimBLEServer *BLEHandler::pServer = NimBLEDevice::createServer();
+BLEHandler::BLEHandler() {}
 
-BLEHandler::BLEHandler()
+void BLEHandler::setup()
 {
     Serial.println("Starting NimBLE Server");
     /** sets device name */
     NimBLEDevice::init("NimBLE-irrigacao");
-
+    pServer = NimBLEDevice::createServer();
     /** Optional: set the transmit power, default is 3db */
 #ifdef ESP_PLATFORM
     NimBLEDevice::setPower(ESP_PWR_LVL_P9); /** +9db */
@@ -158,7 +175,7 @@ BLEHandler::BLEHandler()
 
     NimBLEDevice::setSecurityIOCap(BLE_HS_IO_NO_INPUT_OUTPUT);
 
-    pWifiService = BLEHandler::pServer->createService(S_WIFI_UUID);
+    pWifiService = pServer->createService(S_WIFI_UUID);
     pWifiWriteCharacteristic = pWifiService->createCharacteristic(C_WIFI_W_UUID, NIMBLE_PROPERTY::WRITE);
 
     pWifiReadCharacteristic = pWifiService->createCharacteristic(C_WIFI_R_UUID, NIMBLE_PROPERTY::READ);
@@ -166,7 +183,7 @@ BLEHandler::BLEHandler()
     pWifiWriteCharacteristic->setCallbacks(&chrCallbacks);
     pWifiReadCharacteristic->setCallbacks(&chrCallbacks);
 
-    pProfileService = BLEHandler::pServer->createService(S_PROFILE_UUID);
+    pProfileService = pServer->createService(S_PROFILE_UUID);
     pProfileWriteCharacteristic = pProfileService->createCharacteristic(
         C_PROFILE_W_UUID,
         NIMBLE_PROPERTY::WRITE);
@@ -180,7 +197,7 @@ BLEHandler::BLEHandler()
 
     for (int i = 0; i < 4; i++)
     {
-        pControllerService[i] = BLEHandler::pServer->createService(S_CONTROL_UUID[i]);
+        pControllerService[i] = pServer->createService(S_CONTROL_UUID[i]);
         pControllerWriteCharacteristic[i] = pControllerService[i]->createCharacteristic(C_CONTROL_W_UUID[i], NIMBLE_PROPERTY::WRITE);
         pControllerReadCharacteristic[i] = pControllerService[i]->createCharacteristic(C_CONTROL_R_UUID[i], NIMBLE_PROPERTY::READ);
         pControllerWriteCharacteristic[i]->setCallbacks(&chrCallbacks);

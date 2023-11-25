@@ -22,8 +22,6 @@ APIWrapper::APIWrapper()
     url = api_url;
 
     precip_mm = 0.0;
-    strlcpy(last_updated, (char *)"YYYY-MM-DD HH:MM", 17);
-
     current_timestamp = 0;
 }
 
@@ -58,7 +56,6 @@ void APIWrapper::getDataFromURL()
         http.end();
 
         // data collection
-        strlcpy(last_updated, doc["current"]["last_updated"] | "YYYY-MM-DD HH:MM", 17);
         precip_mm = doc["current"]["precip_mm"] | 0;
 
         buffer[current_timestamp] = precip_mm;
@@ -74,7 +71,15 @@ void APIWrapper::getDataFromURL()
 float APIWrapper::getData(int period)
 {
     float accumulated = 0;
-    int initial_index = min(current_timestamp * interval - period, 0);
+    int initial_index;
+    if (current_timestamp * interval - period > 0)
+    {
+        initial_index = min(current_timestamp * interval - period, 0);
+    }
+    else
+    {
+        initial_index = 0;
+    }
     for (int i = initial_index; i < current_timestamp; i++)
     {
         accumulated += buffer[(i) % (7 * 24 * 4)];

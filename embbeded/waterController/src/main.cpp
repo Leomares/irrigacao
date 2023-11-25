@@ -1,9 +1,9 @@
-#define CONTROLLER_USE 0
+#define CONTROLLER_USE 1
 #define API_USE 1
 #define WIFI_USE 1
-#define BLE_USE 0
+#define BLE_USE 1
 #define MEMORY_USE 1
-#define TIMER_USE 0
+#define TIMER_USE 1
 
 #include <Arduino.h>
 #if MEMORY_USE
@@ -24,9 +24,6 @@
 #if API_USE
 APIWrapper api;
 #endif
-#if BLE_USE
-BLEHandler ble;
-#endif
 
 #if CONTROLLER_USE
 const int sensorPins[4] = {34, 35, 36, 39}; // input only pins
@@ -39,13 +36,16 @@ Controller controllers[4] = {
 #endif
 
 #if TIMER_USE
+bool api_called = false;
 hw_timer_t *timer = NULL;
 uint64_t timerValue = 0;
-hw_timer_t *timerAPI = NULL;
+uint64_t timerAPIValue = 0;
+// hw_timer_t *timerAPI = NULL;
 
 void IRAM_ATTR onTimer()
 {
     timerValue++;
+    timerAPIValue++;
     return;
 }
 void IRAM_ATTR onTimerAPI()
@@ -53,18 +53,23 @@ void IRAM_ATTR onTimerAPI()
 #if API_USE
     api.getDataFromURL();
 #endif
-    Serial.println("API called");
+    api_called = true;
     return;
 }
 #endif
 
 void setup()
 {
-// put your setup code here, to run once:
-
+    // put your setup code here, to run once:
+    delay(10000);
 // set default params
+#if WIFI_USE
+    WiFiHandler wifi;
+    WiFiHandler::connectWifi();
+#endif
+
 #if MEMORY_USE
-    Memory::resetNVS();
+    // Memory::resetNVS();
     Memory::setDefaultWiFiConfig();
     Memory::setDefaultProfile();
 #endif
@@ -78,34 +83,72 @@ void setup()
 #endif
 // timer config
 #if TIMER_USE
-    timer = timerBegin(0, 40000, true);
+    timer = timerBegin(0, 80, true);
     timerAttachInterrupt(timer, &onTimer, true);
-    timerAlarmWrite(timer, 2000, true);
-    timerAPI = timerBegin(1, 40000, true);
-    timerAttachInterrupt(timer, &onTimerAPI, true);
-    timerAlarmWrite(timer, 2000 * 60 * 15, true); // 15 minutes
+    timerAlarmWrite(timer, 1000000, true);
+    // timerAPI = timerBegin(2, 80, true);
+    // timerAttachInterrupt(timer, &onTimerAPI, true);
+    // timerAlarmWrite(timer, 1000000 * 30, true); // 15 minutes
 #endif
     // serial config
     Serial.begin(115200);
 
-    // bluetooth config
+// bluetooth config
+#if BLE_USE
+    BLEHandler::setup();
+#endif
 
 #if TIMER_USE
     timerAlarmEnable(timer);
-    timerAlarmEnable(timerAPI);
+    // timerAlarmEnable(timerAPI);
 #endif
 }
 
 void loop()
 {
 // put your main code here, to run repeatedly:
-#if CONTROLER_USE
+#if CONTROLLER_USE
     for (int i = 0; i < Controller::getNControllers(); i++)
     {
         controllers[i].control();
     }
 #endif
     // delay(10 * 60 * 1000); // 10 minutes
-    delay(1000); // 30 seconds
-    Serial.println("Main loop");
+    delay(10000);
+    if (!timerAlarmEnabled(timer))
+    {
+        timerAlarmEnable(timer);
+    }
+    Serial.println((String)timerValue);
+    if (WiFiHandler::isConnected())
+    {
+        Serial.println("WiFi connected");
+    }
+    if (timerAPIValue > 30)
+    {
+        timerAPIValue = 0;
+        api.getDataFromURL();
+        api_called = true;
+    }
+    if (api_called)
+    {
+        Serial.println("API called");
+        api_called = false;
+    }
+    float data = api.getData(60);
+    Serial.print("API data gathered: ");
+    Serial.println(data);
+
+    if (pServer->getConnectedCount())
+    {
+        NimBLEService *pSvc = pServer->getServiceByUUID("BAAD");
+        if (pSvc)
+        {
+            NimBLECharacteristic *pChr = pSvc->getCharacteristic("F00D");
+            if (pChr)
+            {
+                pChr->notify(true);
+            }
+        }
+    }
 }

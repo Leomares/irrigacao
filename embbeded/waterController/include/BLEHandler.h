@@ -3,30 +3,12 @@
 
 #include <NimBLEDevice.h>
 
+extern NimBLEServer *pServer;
+
 class BLEHandler
 {
 public:
     BLEHandler();
-
-private:
-    int connected;
-
-    static NimBLEServer *pServer;
-
-    NimBLEService *pWifiService;
-    NimBLEService *pProfileService;
-    NimBLEService *pControllerService[4];
-
-    NimBLECharacteristic *pWifiWriteCharacteristic;
-    NimBLECharacteristic *pWifiReadCharacteristic;
-
-    NimBLECharacteristic *pProfileWriteCharacteristic;
-    NimBLECharacteristic *pProfileReadCharacteristic;
-
-    NimBLECharacteristic *pControllerWriteCharacteristic[4];
-    NimBLECharacteristic *pControllerReadCharacteristic[4];
-
-    NimBLEAdvertising *pAdvertising;
+    static void setup();
 };
-
 #endif
