@@ -6,7 +6,7 @@ extern uint64_t timerValue;
 class Controller
 {
 public:
-    Controller(int soilMoisturePin, int pumpPin);
+    Controller(int controllerIndex, int soilMoisturePin, int pumpPin);
 
     bool getInUse();
 
@@ -36,6 +36,7 @@ public:
 
 private:
     // pin specific
+    int controllerIndex;
     int soilMoisturePin;
     int pumpPin;
     // peripherals specific

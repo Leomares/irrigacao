@@ -3,7 +3,7 @@
 
 #include <NimBLEDevice.h>
 
-extern NimBLEServer *pServer;
+// extern NimBLEServer *pServer;
 
 class BLEHandler
 {

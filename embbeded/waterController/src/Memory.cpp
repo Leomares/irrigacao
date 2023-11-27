@@ -31,7 +31,7 @@ void Memory::getWiFiConfig(String *ssid_, String *password_)
 
 void Memory::setProfile(int index, Profile profile)
 {
-    char profile_name[10];
+    char profile_name[15];
     sprintf(profile_name, "profile%d", index);
     prefs.begin(profile_name, false);
     prefs.putBool("valid", true);
@@ -50,7 +50,7 @@ Profile Memory::getProfile(int index)
     bool validProfile;
     Profile profile;
 
-    char profile_name[10];
+    char profile_name[15];
     sprintf(profile_name, "profile%d", index);
     prefs.begin(profile_name, true);
     validProfile = prefs.getBool("valid", false);
@@ -69,6 +69,27 @@ Profile Memory::getProfile(int index)
     profile.cooldownPeriod = prefs.getInt("cooldownPeriod", 0);
     prefs.end();
     return profile;
+}
+
+int Memory::getLastProfile(int controllerIndex)
+{
+    int profileIndex;
+    char controllerLastIndex[4];
+    sprintf(controllerLastIndex, "%d", controllerIndex);
+    prefs.begin("lastprofile", true);
+    profileIndex = prefs.getInt(controllerLastIndex, -1);
+    prefs.end();
+    return profileIndex;
+}
+
+void Memory::setLastProfile(int controllerIndex, int profileIndex)
+{
+    char controllerLastIndex[4];
+    sprintf(controllerLastIndex, "%d", controllerIndex);
+    prefs.begin("lastprofile", false);
+    prefs.putInt(controllerLastIndex, profileIndex);
+    prefs.end();
+    return;
 }
 
 void Memory::setDefaultProfile()

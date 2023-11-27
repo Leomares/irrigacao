@@ -22,6 +22,10 @@ public:
 
     static Profile getProfile(int index);
 
+    static void setLastProfile(int controllerIndex, int profileIndex);
+
+    static int getLastProfile(int controllerIndex);
+
     static void setDefaultProfile();
 
     static void setDefaultWiFiConfig();

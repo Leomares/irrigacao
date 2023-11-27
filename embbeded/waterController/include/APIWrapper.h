@@ -23,6 +23,8 @@ private:
     int current_timestamp;
     // accumulated preciptation data.
     float buffer[7 * 24 * 60 / 15];
+
+    // char *last_updated;
 };
 
 #endif

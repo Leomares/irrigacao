@@ -8,16 +8,13 @@
 
 extern APIWrapper api;
 
-Controller::Controller(int soilMoisturePin, int pumpPin) : soilMoisturePin(soilMoisturePin), pumpPin(pumpPin)
+Controller::Controller(int controllerIndex, int soilMoisturePin, int pumpPin) : controllerIndex(controllerIndex), soilMoisturePin(soilMoisturePin), pumpPin(pumpPin)
 {
     soilMoistureThreshold = 2000; // need to measure
     pumpFlowRate = 2 * 0.5;       // maximum of 2 L/min
 
     inUse = false;
     profileIndex = -1;
-
-    pinMode(pumpPin, OUTPUT);
-    digitalWrite(pumpPin, LOW); // Ensure the pump is initially turned off
 }
 
 bool Controller::getInUse()
@@ -27,6 +24,9 @@ bool Controller::getInUse()
 
 void Controller::setInUse()
 {
+    profileIndex = Memory::getLastProfile(controllerIndex);
+    pinMode(pumpPin, OUTPUT);
+    digitalWrite(pumpPin, LOW); // Ensure the pump is initially turned off
     updateNextEvent();
     inUse = true;
     return;
@@ -34,7 +34,7 @@ void Controller::setInUse()
 
 void Controller::setProfile(int index)
 {
-    profileIndex = index;
+    Memory::setLastProfile(controllerIndex, profileIndex);
     return;
 }
 
@@ -113,7 +113,8 @@ void Controller::control()
     }
 
     int rangeAPI;
-    float rainLevel, volumeNeeded;
+    float rainLevel = 0.0;
+    float volumeNeeded;
 
     Profile currentProfile = Memory::getProfile(profileIndex);
     float soilMoistureLevel = getSoilMoistureData();
@@ -125,13 +126,10 @@ void Controller::control()
     }
     else if (currentProfile.cooldownPeriod != 0)
     {
-        rangeAPI = currentProfile.regularPeriod;
+        rangeAPI = currentProfile.cooldownPeriod;
         rainLevel = api.getData(rangeAPI);
     }
-    else
-    {
-        rainLevel = 0;
-    }
+
     volumeNeeded = calculateVolume(soilMoistureLevel, rainLevel);
 
     turnOnWaterPump(volumeNeeded);

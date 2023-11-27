@@ -23,6 +23,8 @@ APIWrapper::APIWrapper()
 
     precip_mm = 0.0;
     current_timestamp = 0;
+
+    // strlcpy(last_updated, (char *)"YYYY-MM-DD HH:MM", 17);
 }
 
 void APIWrapper::getDataFromURL()
@@ -57,9 +59,12 @@ void APIWrapper::getDataFromURL()
 
         // data collection
         precip_mm = doc["current"]["precip_mm"] | 0;
+        // strlcpy(last_updated, doc["current"]["last_updated"] | "YYYY-MM-DD HH:MM", 17);
 
         buffer[current_timestamp] = precip_mm;
         current_timestamp = (current_timestamp + 1) % (7 * 24 * 4);
+
+        // Serial.println(F(last_updated));
     }
     else
     {
