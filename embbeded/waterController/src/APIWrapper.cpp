@@ -1,7 +1,3 @@
-#define API_USE 1
-
-#if API_USE
-
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <Arduino.h>
@@ -13,8 +9,9 @@
 // https://ipstack.com/
 // https://wokwi.com/projects/371565043567756289
 
-DynamicJsonDocument doc(1024);
-HTTPClient http;
+// DynamicJsonDocument doc(256);
+static StaticJsonDocument<256> doc;
+static HTTPClient http;
 
 APIWrapper::APIWrapper()
 {
@@ -23,8 +20,6 @@ APIWrapper::APIWrapper()
 
     precip_mm = 0.0;
     current_timestamp = 0;
-
-    // strlcpy(last_updated, (char *)"YYYY-MM-DD HH:MM", 17);
 }
 
 void APIWrapper::getDataFromURL()
@@ -50,11 +45,11 @@ void APIWrapper::getDataFromURL()
                 Serial.print(F("deserializeJson failed: "));
                 Serial.println(error.f_str());
                 http.end();
-                delay(2500);
+                delay(1000);
                 return;
             }
         }
-        Serial.println("Successful API call");
+        Serial.println("Successful API call.");
         http.end();
 
         // data collection
@@ -63,8 +58,6 @@ void APIWrapper::getDataFromURL()
 
         buffer[current_timestamp] = precip_mm;
         current_timestamp = (current_timestamp + 1) % (7 * 24 * 4);
-
-        // Serial.println(F(last_updated));
     }
     else
     {
@@ -79,7 +72,7 @@ float APIWrapper::getData(int period)
     int initial_index;
     if (current_timestamp * interval - period > 0)
     {
-        initial_index = min(current_timestamp * interval - period, 0);
+        initial_index = (current_timestamp * interval - period) / interval;
     }
     else
     {
@@ -91,5 +84,3 @@ float APIWrapper::getData(int period)
     }
     return accumulated;
 }
-
-#endif

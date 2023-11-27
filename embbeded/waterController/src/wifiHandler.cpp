@@ -1,15 +1,13 @@
-#define WIFI_USE 1
-#if WIFI_USE
-
 #include <Arduino.h>
 #include <WiFi.h>
 #include "WiFiHandler.h"
 #include "Memory.h"
 
-const int timeout_threshold = 60000;
+const int timeout_threshold = 30000;
 
 WiFiHandler::WiFiHandler()
 {
+    /*
     String ssid, password;
     Memory::getWiFiConfig(&ssid, &password);
     if (ssid == "" || password == "")
@@ -17,6 +15,7 @@ WiFiHandler::WiFiHandler()
         Serial.println("No wifi configuration.");
         // getSerialWifiConfig();
     }
+    */
     return;
 }
 
@@ -48,7 +47,7 @@ void WiFiHandler::getSerialWifiConfig()
 
 void WiFiHandler::connectWifi()
 {
-    Serial.println("ConnectWifi function");
+    Serial.println("Fetching WiFi config.");
     // read wifi config
     String ssid, password;
     Memory::getWiFiConfig(&ssid, &password);
@@ -74,7 +73,7 @@ void WiFiHandler::connectWifi()
         }
         else
         {
-            Serial.println("Wifi connection timeout.");
+            Serial.println("WiF connection timeout.");
         }
     }
     else
@@ -88,4 +87,3 @@ bool WiFiHandler::isConnected()
 {
     return WiFi.status() == WL_CONNECTED;
 }
-#endif

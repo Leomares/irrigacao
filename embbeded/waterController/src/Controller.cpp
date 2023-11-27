@@ -1,6 +1,3 @@
-#define CONTROLLER_USE 1
-#if CONTROLLER_USE
-
 #include <Arduino.h>
 #include "Memory.h"
 #include "APIWrapper.h"
@@ -34,7 +31,8 @@ void Controller::setInUse()
 
 void Controller::setProfile(int index)
 {
-    Memory::setLastProfile(controllerIndex, profileIndex);
+    Memory::setLastProfile(controllerIndex, index);
+    inUse = false;
     return;
 }
 
@@ -52,7 +50,7 @@ void Controller::turnOnWaterPump(float volume)
     digitalWrite(pumpPin, true);
     delay(time_ms);
     digitalWrite(pumpPin, false);
-    delay(10);
+    delay(100);
     return;
 }
 
@@ -154,5 +152,3 @@ int Controller::getNControllers()
 }
 
 int Controller::nControllers = 0;
-
-#endif

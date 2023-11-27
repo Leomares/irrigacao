@@ -4,7 +4,7 @@
 #include "Memory.h"
 #include "secrets.h"
 
-Preferences prefs;
+static Preferences prefs;
 
 Memory::Memory()
 {

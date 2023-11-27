@@ -1,11 +1,6 @@
-#define CONTROLLER_USE 1
-#define API_USE 1
-#define BLE_USE 1
-#define STRING_UUID 1
-
-#if BLE_USE
 
 #include <Arduino.h>
+#include <NimBLEDevice.h>
 #include <sstream>
 #include "Memory.h"
 #include "WiFiHandler.h"
@@ -25,7 +20,6 @@ static NimBLECharacteristic *pControllerWriteCharacteristic[4];
 static NimBLECharacteristic *pControllerReadCharacteristic[4];
 static NimBLEAdvertising *pAdvertising;
 
-#if STRING_UUID
 const char *S_WIFI_UUID = "2a38798e-8a3e-11ee-b9d1-0242ac120002";
 const char *C_WIFI_R_STATUS_UUID = "2a387d08-8a3e-11ee-b9d1-0242ac120002";
 const char *C_WIFI_W_SSID_UUID = "2a387bdc-8a3e-11ee-b9d1-0242ac120002";
@@ -60,48 +54,8 @@ const char *C_CONTROL_R_UUID[4] = {
     "c6a16c68-8a3e-11ee-b9d1-0242ac120002",
     "c6a1700a-8a3e-11ee-b9d1-0242ac120002",
     "c6a1719a-8a3e-11ee-b9d1-0242ac120002"};
-#else
 
-const char *S_WIFI_UUID = "SERVICE_WIFI";
-const char *C_WIFI_R_STATUS_UUID = "STATUS";
-const char *C_WIFI_W_SSID_UUID = "SSID";
-const char *C_WIFI_W_PWORD_UUID = "PWORD";
-
-const char *S_PROFILE_UUID = "SERVICE_PROFILE";
-const char *C_PROFILE_W_UUID = "LAST_PROFILE";
-
-const char *S_CONTROL_UUID[4] = {
-    "SERVICE_CONTROL_1",
-    "SERVICE_CONTROL_2",
-    "SERVICE_CONTROL_3",
-    "SERVICE_CONTROL_4",
-};
-
-const char *C_CONTROL_W_UUID[4] = {
-    "WRITE_CONTROL_1",
-    "WRITE_CONTROL_2",
-    "WRITE_CONTROL_3",
-    "WRITE_CONTROL_4",
-};
-
-const char *C_CONTROL_R_UUID[4] = {
-    "STATUS_CONTROL_1",
-    "STATUS_CONTROL_2",
-    "STATUS_CONTROL_3",
-    "STATUS_CONTROL_4",
-};
-#endif
-#if CONTROLLER_USE
 extern Controller controllers[4];
-#else
-const int sensorPins[4] = {34, 35, 36, 39}; // input only pins
-const int pumpPins[4] = {32, 33, 25, 26};
-Controller controllers[4] = {
-    Controller(sensorPins[0], pumpPins[0]),
-    Controller(sensorPins[1], pumpPins[1]),
-    Controller(sensorPins[2], pumpPins[2]),
-    Controller(sensorPins[3], pumpPins[3])};
-#endif
 
 // https://registry.platformio.org/libraries/h2zero/NimBLE-Arduino/examples/NimBLE_Server/NimBLE_Server.ino
 
@@ -109,8 +63,6 @@ Controller controllers[4] = {
  **                       Remove as you see fit for your needs                        */
 
 /** Handler class for characteristic actions */
-// test
-
 void setProfileInfo(String profileString)
 {
     Profile *currentProfile = new Profile;
@@ -214,8 +166,9 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
         {
             pCharacteristic->setValue(controllers[3].getInUse());
         }
-        Serial.print(pCharacteristic->getUUID().toString().c_str());
-        Serial.print(": onRead(), value: ");
+        // Serial.print(pCharacteristic->getUUID().toString().c_str());
+        //  Serial.print(": onRead(), value: ");
+        Serial.print("Value read:");
         Serial.println((String)pCharacteristic->getValue().c_str());
     };
 
@@ -250,17 +203,18 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
         {
             setControllerInfo(3, pCharacteristic->getValue());
         }
-        Serial.print(pCharacteristic->getUUID().toString().c_str());
-        Serial.print(": onWrite(), value: ");
+        // Serial.print(pCharacteristic->getUUID().toString().c_str());
+        // Serial.print(": onWrite(), value: ");
+        Serial.print("Value Written: ");
         Serial.println(pCharacteristic->getValue().c_str());
     };
     /** Called before notification or indication is sent,
      *  the value can be changed here before sending if desired.
-     */
     void onNotify(NimBLECharacteristic *pCharacteristic)
     {
         Serial.println("Sending notification to clients");
     };
+     */
 };
 
 static CharacteristicCallbacks chrCallbacks;
@@ -342,5 +296,3 @@ void BLEHandler::setup()
 
     Serial.println("Advertising Started");
 }
-
-#endif
