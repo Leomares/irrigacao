@@ -10,7 +10,7 @@
 // https://wokwi.com/projects/371565043567756289
 
 // DynamicJsonDocument doc(256);
-static StaticJsonDocument<256> doc;
+static StaticJsonDocument<512> doc;
 static HTTPClient http;
 
 APIWrapper::APIWrapper()
@@ -31,7 +31,7 @@ void APIWrapper::getDataFromURL()
 
     if (WiFiHandler::isConnected())
     {
-        Serial.println("Getting current data...");
+        Serial.println(F("Getting current data..."));
         http.begin(url);
         int httpCode = http.GET();
         Serial.print("HTTP Code: ");
@@ -49,7 +49,7 @@ void APIWrapper::getDataFromURL()
                 return;
             }
         }
-        Serial.println("Successful API call.");
+        Serial.println(F("Successful API call."));
         http.end();
 
         // data collection
@@ -61,7 +61,7 @@ void APIWrapper::getDataFromURL()
     }
     else
     {
-        Serial.println("WiFi not connected.");
+        Serial.println(F("WiFi not connected."));
     }
     return;
 }

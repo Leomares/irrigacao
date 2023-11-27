@@ -1,6 +1,8 @@
 #ifndef MEMORY_H
 #define MEMORY_H
 
+#define DEFAULT_MEMORY_CONFIG 1
+
 struct Profile
 {
     bool isOutside;
@@ -26,11 +28,14 @@ public:
 
     static int getLastProfile(int controllerIndex);
 
+#if DEFAULT_MEMORY_CONFIG
+
     static void setDefaultProfile();
 
     static void setDefaultWiFiConfig();
 
     static void resetNVS();
+#endif
 };
 
 #endif

@@ -21,7 +21,7 @@ Controller controllers[4] = {
 hw_timer_t *timer = NULL;
 volatile static uint64_t isr_timerValue = 0;
 uint64_t timerValue;
-uint64_t timerAPIValue = 0;
+static uint64_t timerAPIValue = 0;
 
 void IRAM_ATTR onTimer()
 {
@@ -35,10 +35,11 @@ void setup()
     delay(10000);
     WiFiHandler wifi;
     WiFiHandler::connectWifi();
-
-    // Memory::resetNVS();
+#if DEFAULT_MEMORY_CONFIG
+    Memory::resetNVS();
     Memory::setDefaultWiFiConfig();
     Memory::setDefaultProfile();
+#endif
 
     // controller config
     Controller::addNControllers(1);
@@ -75,13 +76,14 @@ void loop()
 
     timerValue = isr_timerValue;
     delay(100);
+    Serial.print(F("Current timer: "));
+    Serial.println(timerValue);
     if (isr_timerValue > timerAPIValue)
     {
-        timerAPIValue = isr_timerValue + 30;
+        timerAPIValue = isr_timerValue + 30; // debug
+        // timerAPIValue = isr_timerValue + 15*60;
         api.getDataFromURL();
     }
-    float data = api.getData(120);
-    Serial.printf("API data gathered from %d calls(%d): %1.4f\n", timerAPIValue / 30, timerValue, data);
     for (int i = 0; i < Controller::getNControllers(); i++)
     {
         controllers[i].control();

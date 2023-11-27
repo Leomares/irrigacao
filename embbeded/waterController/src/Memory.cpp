@@ -56,9 +56,9 @@ Profile Memory::getProfile(int index)
     validProfile = prefs.getBool("valid", false);
     if (!validProfile)
     {
-        Serial.print("Index ");
+        Serial.print(F("Index "));
         Serial.print(index);
-        Serial.println(" is not a valid profile. Returning the default one");
+        Serial.println(F(" is not a valid profile. Returning the default one"));
         prefs.end();
         sprintf(profile_name, "profile%d", -1);
         prefs.begin(profile_name, true);
@@ -91,7 +91,7 @@ void Memory::setLastProfile(int controllerIndex, int profileIndex)
     prefs.end();
     return;
 }
-
+#if DEFAULT_MEMORY_CONFIG
 void Memory::setDefaultProfile()
 {
     Profile currentProfile;
@@ -114,3 +114,4 @@ void Memory::resetNVS()
     nvs_flash_init();  // initialize the NVS partition.
     return;
 }
+#endif

@@ -1,7 +1,10 @@
+#define SS_USE 1
 
 #include <Arduino.h>
 #include <NimBLEDevice.h>
+#if SS_USE
 #include <sstream>
+#endif
 #include "Memory.h"
 #include "WiFiHandler.h"
 #include "Controller.h"
@@ -65,6 +68,8 @@ extern Controller controllers[4];
 /** Handler class for characteristic actions */
 void setProfileInfo(String profileString)
 {
+#if SS_USE
+
     Profile *currentProfile = new Profile;
     int index;
 
@@ -89,28 +94,36 @@ void setProfileInfo(String profileString)
     Memory::setProfile(index, *currentProfile);
 
     delete currentProfile;
+#endif
     return;
 }
 
 void setSSIDInfo(String ssidString)
 {
+#if SS_USE
+
     String ssid, password;
     Memory::getWiFiConfig(&ssid, &password);
     ssid = ssidString;
     Memory::setWiFiConfig(ssid, password);
+#endif
     return;
 }
 void setPasswordInfo(String passString)
 {
+#if SS_USE
     String ssid, password;
     Memory::getWiFiConfig(&ssid, &password);
     password = passString;
     Memory::setWiFiConfig(ssid, password);
     return;
+#endif
 }
 
 void setControllerInfo(int controlIndex, String controllerString)
 {
+#if SS_USE
+
     bool inUseControl;
     int profileIndexControl;
 
@@ -138,6 +151,7 @@ void setControllerInfo(int controlIndex, String controllerString)
     {
         Controller::addNControllers(Controller::getNControllers() - 1);
     }
+#endif
     return;
 }
 
@@ -168,7 +182,7 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
         }
         // Serial.print(pCharacteristic->getUUID().toString().c_str());
         //  Serial.print(": onRead(), value: ");
-        Serial.print("Value read:");
+        Serial.print(F("Value read:"));
         Serial.println((String)pCharacteristic->getValue().c_str());
     };
 
@@ -205,7 +219,7 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
         }
         // Serial.print(pCharacteristic->getUUID().toString().c_str());
         // Serial.print(": onWrite(), value: ");
-        Serial.print("Value Written: ");
+        Serial.print(F("Value Written: "));
         Serial.println(pCharacteristic->getValue().c_str());
     };
     /** Called before notification or indication is sent,
@@ -223,7 +237,7 @@ BLEHandler::BLEHandler() {}
 
 void BLEHandler::setup()
 {
-    Serial.println("Starting NimBLE Server");
+    Serial.println(F("Starting NimBLE Server"));
     /** sets device name */
     NimBLEDevice::init("NimBLE-irrigacao");
     pServer = NimBLEDevice::createServer();
@@ -294,5 +308,5 @@ void BLEHandler::setup()
     pAdvertising->setScanResponse(true);
     pAdvertising->start();
 
-    Serial.println("Advertising Started");
+    Serial.println(F("Advertising Started"));
 }

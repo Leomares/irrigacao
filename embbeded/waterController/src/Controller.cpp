@@ -103,10 +103,10 @@ void Controller::updateNextEvent()
 
 void Controller::control()
 {
-    Serial.println("Controller control engaged");
+    Serial.println(F("Controller control engaged"));
     if (!inUse || nextEvent > timerValue)
     {
-        Serial.println("Controller not in use");
+        Serial.println(F("Controller not in use"));
         return;
     }
 
@@ -139,7 +139,7 @@ void Controller::addNControllers(int n)
 {
     if (n > 4)
     {
-        Serial.println("Too many simultaneous controllers");
+        Serial.println(F("Too many simultaneous controllers"));
         return;
     }
     nControllers = n;
