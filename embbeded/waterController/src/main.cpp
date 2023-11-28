@@ -2,13 +2,17 @@
 // trim code
 // implement security on ble
 
+#define API_USE 1
+
 #include <Arduino.h>
 #include "Memory.h"
 #include "WiFiHandler.h"
+#if API_USE
 #include "APIWrapper.h"
+APIWrapper api;
+#endif
 #include "Controller.h"
 #include "BLEHandler.h"
-APIWrapper api;
 
 const int sensorPins[4] = {34, 35, 36, 39}; // input only pins
 const int pumpPins[4] = {32, 33, 25, 26};
@@ -81,8 +85,10 @@ void loop()
     if (isr_timerValue > timerAPIValue)
     {
         timerAPIValue = isr_timerValue + 30; // debug
-        // timerAPIValue = isr_timerValue + 15*60;
+// timerAPIValue = isr_timerValue + 15*60;
+#if API_USE
         api.getDataFromURL();
+#endif
     }
     for (int i = 0; i < Controller::getNControllers(); i++)
     {

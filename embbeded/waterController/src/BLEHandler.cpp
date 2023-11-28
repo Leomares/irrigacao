@@ -1,4 +1,4 @@
-#define SS_USE 1
+#define SS_USE 0
 
 #include <Arduino.h>
 #include <NimBLEDevice.h>
@@ -15,8 +15,9 @@ static NimBLEService *pWifiService;
 static NimBLEService *pProfileService;
 static NimBLEService *pControllerService[4];
 static NimBLECharacteristic *pWiFiStatusCharacteristic;
-static NimBLECharacteristic *pWiFiSSIDCharacteristic;
-static NimBLECharacteristic *pWiFiPWORDCharacteristic;
+static NimBLECharacteristic *pWiFiConfigCharacteristic;
+// static NimBLECharacteristic *pWiFiSSIDCharacteristic;
+// static NimBLECharacteristic *pWiFiPWORDCharacteristic;
 static NimBLECharacteristic *pProfileWriteCharacteristic;
 // NimBLECharacteristic *pProfileReadCharacteristic;
 static NimBLECharacteristic *pControllerWriteCharacteristic[4];
@@ -25,8 +26,9 @@ static NimBLEAdvertising *pAdvertising;
 
 const char *S_WIFI_UUID = "2a38798e-8a3e-11ee-b9d1-0242ac120002";
 const char *C_WIFI_R_STATUS_UUID = "2a387d08-8a3e-11ee-b9d1-0242ac120002";
-const char *C_WIFI_W_SSID_UUID = "2a387bdc-8a3e-11ee-b9d1-0242ac120002";
-const char *C_WIFI_W_PWORD_UUID = "4e0b4bde-8a3e-11ee-b9d1-0242ac120002";
+const char *C_WIFI_W_CONFIG_UUID = "2a387bdc-8a3e-11ee-b9d1-0242ac120002";
+// const char *C_WIFI_W_SSID_UUID = "2a387bdc-8a3e-11ee-b9d1-0242ac120002";
+// const char *C_WIFI_W_PWORD_UUID = "4e0b4bde-8a3e-11ee-b9d1-0242ac120002";
 
 /*
  set a profile in a certain index. Serialization used:
@@ -66,12 +68,22 @@ extern Controller controllers[4];
  **                       Remove as you see fit for your needs                        */
 
 /** Handler class for characteristic actions */
+
+/*
+Deserialize string fetched from BLE characteristic for setting a profile. The pattern used is the following:
+
+- XX int index
+- X bool isOutside
+- XXX int volume (ml)
+- XXX int regular period (seconds)
+- XXX int cooldown period (seconds)
+No delimiters are needed.
+*/
 void setProfileInfo(String profileString)
 {
-#if SS_USE
-
     Profile *currentProfile = new Profile;
     int index;
+#if SS_USE
 
     float numbers[5];
     std::istringstream iss(profileString.c_str());
@@ -91,41 +103,62 @@ void setProfileInfo(String profileString)
     currentProfile->volume = numbers[2];
     currentProfile->regularPeriod = numbers[3];
     currentProfile->cooldownPeriod = numbers[4];
+#else
+    index = profileString.substring(0, 2).toInt();
+    currentProfile->isOutside = profileString.substring(2, 3).toInt() > 0;
+    currentProfile->volume = profileString.substring(3, 6).toInt();
+    currentProfile->regularPeriod = profileString.substring(6, 9).toInt();
+    currentProfile->cooldownPeriod = profileString.substring(9, 12).toInt();
+#endif
     Memory::setProfile(index, *currentProfile);
-
     delete currentProfile;
-#endif
     return;
 }
 
-void setSSIDInfo(String ssidString)
+/*
+Deserialize string fetched from BLE characteristic for setting a profile. The pattern used is "ssid,password".
+*/
+void setWiFiInfo(String WiFiString)
 {
 #if SS_USE
+    char ssid[20], password[20];
+    char delimiter = ',';
+    std::istringstream iss(WiFiString.c_str());
+    std::string numberStr;
 
+    if (std::getline(iss, numberStr, delimiter))
+    {
+        strcpy(ssid, numberStr.c_str());
+    }
+    if (std::getline(iss, numberStr, delimiter))
+    {
+        strcpy(password, numberStr.c_str());
+    }
+#else
     String ssid, password;
-    Memory::getWiFiConfig(&ssid, &password);
-    ssid = ssidString;
-    Memory::setWiFiConfig(ssid, password);
+    char delimiter = ',';
+    int index = WiFiString.indexOf(delimiter);
+    if (index >= 0)
+    {
+        ssid = WiFiString.substring(0, index);
+        password = WiFiString.substring(index);
+    }
+
 #endif
+    Memory::setWiFiConfig(ssid, password);
     return;
 }
-void setPasswordInfo(String passString)
-{
-#if SS_USE
-    String ssid, password;
-    Memory::getWiFiConfig(&ssid, &password);
-    password = passString;
-    Memory::setWiFiConfig(ssid, password);
-    return;
-#endif
-}
 
+/*
+Deserialize string fetched from BLE characteristic for setting a profile. The pattern used is:
+- X bool inUseControl
+- X int profileIndex
+*/
 void setControllerInfo(int controlIndex, String controllerString)
 {
-#if SS_USE
-
     bool inUseControl;
     int profileIndexControl;
+#if SS_USE
 
     std::istringstream iss(controllerString.c_str());
     int numbers[2];
@@ -141,20 +174,23 @@ void setControllerInfo(int controlIndex, String controllerString)
     }
     inUseControl = numbers[0] > 0;
     profileIndexControl = numbers[1];
-    controllers[controlIndex].setProfile(profileIndexControl);
+#else
+    inUseControl = controllerString.substring(0, 1).toInt() > 0;
+    profileIndexControl = controllerString.substring(1, 2).toInt();
+#endif
     if (!controllers[controlIndex].getInUse() && inUseControl)
     {
         Controller::addNControllers(Controller::getNControllers() + 1);
+        controllers[controlIndex].setProfile(profileIndexControl);
         controllers[controlIndex].setInUse();
     }
     else if (controllers[controlIndex].getInUse() && !inUseControl)
     {
         Controller::addNControllers(Controller::getNControllers() - 1);
+        controllers[controlIndex].setProfile(profileIndexControl);
+        return;
     }
-#endif
-    return;
 }
-
 class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
 {
     void onRead(NimBLECharacteristic *pCharacteristic)
@@ -180,6 +216,7 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
         {
             pCharacteristic->setValue(controllers[3].getInUse());
         }
+
         // Serial.print(pCharacteristic->getUUID().toString().c_str());
         //  Serial.print(": onRead(), value: ");
         Serial.print(F("Value read:"));
@@ -192,14 +229,9 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
         {
             setProfileInfo(pCharacteristic->getValue());
         }
-        else if (pCharacteristic->getUUID().toString() == C_WIFI_W_SSID_UUID)
-
+        else if (pCharacteristic->getUUID().toString() == C_WIFI_W_CONFIG_UUID)
         {
-            setSSIDInfo(pCharacteristic->getValue());
-        }
-        else if (pCharacteristic->getUUID().toString() == C_WIFI_W_PWORD_UUID)
-        {
-            setPasswordInfo(pCharacteristic->getValue());
+            setWiFiInfo(pCharacteristic->getValue());
         }
         else if (pCharacteristic->getUUID().toString() == C_CONTROL_W_UUID[0])
         {
@@ -254,35 +286,27 @@ void BLEHandler::setup()
     pWiFiStatusCharacteristic = pWifiService->createCharacteristic(
         C_WIFI_R_STATUS_UUID,
         NIMBLE_PROPERTY::READ);
-    pWiFiSSIDCharacteristic = pWifiService->createCharacteristic(
-        C_WIFI_W_SSID_UUID,
-        // NIMBLE_PROPERTY::READ || // remove later
-        NIMBLE_PROPERTY::WRITE);
-
-    pWiFiPWORDCharacteristic = pWifiService->createCharacteristic(
-        C_WIFI_W_PWORD_UUID,
+    pWiFiConfigCharacteristic = pWifiService->createCharacteristic(
+        C_WIFI_W_CONFIG_UUID,
         // NIMBLE_PROPERTY::READ || // remove later
         NIMBLE_PROPERTY::WRITE);
 
     pWiFiStatusCharacteristic->setCallbacks(&chrCallbacks);
-    pWiFiSSIDCharacteristic->setCallbacks(&chrCallbacks);
-    pWiFiPWORDCharacteristic->setCallbacks(&chrCallbacks);
+    pWiFiConfigCharacteristic->setCallbacks(&chrCallbacks);
 
     pProfileService = pServer->createService(S_PROFILE_UUID);
     pProfileWriteCharacteristic = pProfileService->createCharacteristic(
         C_PROFILE_W_UUID,
-        NIMBLE_PROPERTY::READ ||
-            NIMBLE_PROPERTY::WRITE);
+        NIMBLE_PROPERTY::READ || NIMBLE_PROPERTY::WRITE);
 
     pProfileWriteCharacteristic->setCallbacks(&chrCallbacks);
-    // pProfileReadCharacteristic->setCallbacks(&chrCallbacks);
 
     for (int i = 0; i < 4; i++)
     {
         pControllerService[i] = pServer->createService(S_CONTROL_UUID[i]);
         pControllerWriteCharacteristic[i] = pControllerService[i]->createCharacteristic(C_CONTROL_W_UUID[i], NIMBLE_PROPERTY::WRITE);
-        pControllerReadCharacteristic[i] = pControllerService[i]->createCharacteristic(C_CONTROL_R_UUID[i], NIMBLE_PROPERTY::READ);
         pControllerWriteCharacteristic[i]->setCallbacks(&chrCallbacks);
+        pControllerReadCharacteristic[i] = pControllerService[i]->createCharacteristic(C_CONTROL_R_UUID[i], NIMBLE_PROPERTY::READ);
         pControllerReadCharacteristic[i]->setCallbacks(&chrCallbacks);
     }
 

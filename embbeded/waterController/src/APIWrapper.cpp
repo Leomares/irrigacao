@@ -39,7 +39,6 @@ void APIWrapper::getDataFromURL()
         if (httpCode > 0)
         {
             DeserializationError error = deserializeJson(doc, http.getString());
-
             if (error)
             {
                 Serial.print(F("deserializeJson failed: "));
