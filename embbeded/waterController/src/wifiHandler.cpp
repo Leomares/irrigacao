@@ -3,7 +3,7 @@
 #include "WiFiHandler.h"
 #include "Memory.h"
 
-const int timeout_threshold = 30000;
+const int timeout_threshold = 15000;
 
 WiFiHandler::WiFiHandler()
 {
@@ -73,12 +73,12 @@ void WiFiHandler::connectWifi()
         }
         else
         {
-            Serial.println("WiF connection timeout.");
+            Serial.println("WiFi connection timeout.");
         }
     }
     else
     {
-        Serial.println("No Wifi config found.");
+        Serial.println("No WiFi config found.");
     }
     return;
 }

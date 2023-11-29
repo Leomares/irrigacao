@@ -81,7 +81,9 @@ extern Controller controllers[4];
 // Serialize profile concatenating values with commas.
 String getProfileInfo(int controllerIndex)
 {
+    Serial.println("\nFetching profile...");
     int profileIndex = controllers[controllerIndex].getProfileIndex();
+    Serial.println("Profile " + String(controllerIndex) + "from controller " + String(profileIndex));
     Profile currentProfile = Memory::getProfile(profileIndex);
     String serializedProfile =
         String(currentProfile.isOutside) + "," +
@@ -239,19 +241,19 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
         }
         else if (pCharacteristic->getUUID().toString() == C_CONTROL_R_PROFILE_UUID[0])
         {
-            pCharacteristic->setValue(getProfileInfo(controllers[0].getProfileIndex()));
+            pCharacteristic->setValue(getProfileInfo(0));
         }
         else if (pCharacteristic->getUUID().toString() == C_CONTROL_R_PROFILE_UUID[1])
         {
-            pCharacteristic->setValue(getProfileInfo(controllers[1].getProfileIndex()));
+            pCharacteristic->setValue(getProfileInfo(1));
         }
         else if (pCharacteristic->getUUID().toString() == C_CONTROL_R_PROFILE_UUID[2])
         {
-            pCharacteristic->setValue(getProfileInfo(controllers[2].getProfileIndex()));
+            pCharacteristic->setValue(getProfileInfo(2));
         }
         else if (pCharacteristic->getUUID().toString() == C_CONTROL_R_PROFILE_UUID[3])
         {
-            pCharacteristic->setValue(getProfileInfo(controllers[3].getProfileIndex()));
+            pCharacteristic->setValue(getProfileInfo(3));
         }
 
         // Serial.print(pCharacteristic->getUUID().toString().c_str());
@@ -300,6 +302,70 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
      */
 };
 
+class ServerCallbacks : public NimBLEServerCallbacks
+{
+    void onConnect(NimBLEServer *pServer)
+    {
+        Serial.println("Client connected");
+        Serial.println("Multi-connect support: start advertising");
+        NimBLEDevice::startAdvertising();
+    };
+    /** Alternative onConnect() method to extract details of the connection.
+     *  See: src/ble_gap.h for the details of the ble_gap_conn_desc struct.
+     */
+    void onConnect(NimBLEServer *pServer, ble_gap_conn_desc *desc)
+    {
+        Serial.print("Client address: ");
+        Serial.println(NimBLEAddress(desc->peer_ota_addr).toString().c_str());
+        /** We can use the connection handle here to ask for different connection parameters.
+         *  Args: connection handle, min connection interval, max connection interval
+         *  latency, supervision timeout.
+         *  Units; Min/Max Intervals: 1.25 millisecond increments.
+         *  Latency: number of intervals allowed to skip.
+         *  Timeout: 10 millisecond increments, try for 5x interval time for best results.
+         */
+        pServer->updateConnParams(desc->conn_handle, 24, 48, 0, 60);
+    };
+    void onDisconnect(NimBLEServer *pServer)
+    {
+        Serial.println("Client disconnected - start advertising");
+        NimBLEDevice::startAdvertising();
+    };
+    void onMTUChange(uint16_t MTU, ble_gap_conn_desc *desc)
+    {
+        Serial.printf("MTU updated: %u for connection ID: %u\n", MTU, desc->conn_handle);
+    };
+
+    /********************* Security handled here **********************
+    ****** Note: these are the same return values as defaults ********/
+    uint32_t onPassKeyRequest()
+    {
+        Serial.println("Server Passkey Request");
+        /** This should return a random 6 digit number for security
+         *  or make your own static passkey as done here.
+         */
+        return 123456;
+    };
+
+    bool onConfirmPIN(uint32_t pass_key)
+    {
+        Serial.print("The passkey YES/NO number: ");
+        Serial.println(pass_key);
+        /** Return false if passkeys don't match. */
+        uint32_t test_key = 123456;
+        while (test_key)
+        {
+            if (test_key % 10 != pass_key % 10)
+            {
+                return false;
+            }
+            test_key /= 10;
+            pass_key /= 10;
+        }
+        return true;
+    };
+};
+
 static CharacteristicCallbacks chrCallbacks;
 
 BLEHandler::BLEHandler() {}
@@ -310,6 +376,11 @@ void BLEHandler::setup()
     /** sets device name */
     NimBLEDevice::init("NimBLE-irrigacao");
     pServer = NimBLEDevice::createServer();
+
+    NimBLEDevice::setSecurityAuth(true, true, true);
+    NimBLEDevice::setSecurityPasskey(123456);
+
+    pServer->setCallbacks(new ServerCallbacks());
     /** Optional: set the transmit power, default is 3db */
 #ifdef ESP_PLATFORM
     NimBLEDevice::setPower(ESP_PWR_LVL_P9); /** +9db */
@@ -317,7 +388,8 @@ void BLEHandler::setup()
     NimBLEDevice::setPower(9); /** +9db */
 #endif
 
-    NimBLEDevice::setSecurityIOCap(BLE_HS_IO_NO_INPUT_OUTPUT);
+    // NimBLEDevice::setSecurityIOCap(BLE_HS_IO_NO_INPUT_OUTPUT);//just connect
+    NimBLEDevice::setSecurityIOCap(BLE_HS_IO_DISPLAY_YESNO); // use numeric comparison
 
     pWiFiService = pServer->createService(S_WIFI_UUID);
     pWiFiStatusCharacteristic = pWiFiService->createCharacteristic(
@@ -326,7 +398,7 @@ void BLEHandler::setup()
     pWiFiConfigCharacteristic = pWiFiService->createCharacteristic(
         C_WIFI_W_CONFIG_UUID,
         // NIMBLE_PROPERTY::READ || // remove later
-        NIMBLE_PROPERTY::WRITE);
+        NIMBLE_PROPERTY::WRITE_ENC);
 
     pWiFiStatusCharacteristic->setCallbacks(&chrCallbacks);
     pWiFiConfigCharacteristic->setCallbacks(&chrCallbacks);
@@ -334,13 +406,13 @@ void BLEHandler::setup()
     pProfileService = pServer->createService(S_PROFILE_UUID);
     pProfileWriteCharacteristic = pProfileService->createCharacteristic(
         C_PROFILE_W_UUID,
-        NIMBLE_PROPERTY::WRITE);
+        NIMBLE_PROPERTY::WRITE_ENC);
     pProfileWriteCharacteristic->setCallbacks(&chrCallbacks);
 
     for (int i = 0; i < 4; i++)
     {
         pControllerService[i] = pServer->createService(S_CONTROL_UUID[i]);
-        pControllerWriteCharacteristic[i] = pControllerService[i]->createCharacteristic(C_CONTROL_W_UUID[i], NIMBLE_PROPERTY::WRITE);
+        pControllerWriteCharacteristic[i] = pControllerService[i]->createCharacteristic(C_CONTROL_W_UUID[i], NIMBLE_PROPERTY::WRITE_ENC);
         pControllerWriteCharacteristic[i]->setCallbacks(&chrCallbacks);
         pControllerReadStatusCharacteristic[i] = pControllerService[i]->createCharacteristic(C_CONTROL_R_STATUS_UUID[i], NIMBLE_PROPERTY::READ);
         pControllerReadProfileCharacteristic[i] = pControllerService[i]->createCharacteristic(C_CONTROL_R_PROFILE_UUID[i], NIMBLE_PROPERTY::READ);
