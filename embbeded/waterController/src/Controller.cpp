@@ -21,17 +21,25 @@ bool Controller::getInUse()
 
 void Controller::setInUse()
 {
-    profileIndex = Memory::getLastProfile(controllerIndex);
     pinMode(pumpPin, OUTPUT);
     digitalWrite(pumpPin, LOW); // Ensure the pump is initially turned off
+    profileIndex = Memory::getLastProfile(controllerIndex);
     updateNextEvent();
     inUse = true;
     return;
 }
 
+int Controller::getProfileIndex()
+{
+    return profileIndex;
+}
+
 void Controller::setProfile(int index)
 {
+    pinMode(pumpPin, OUTPUT);
+    digitalWrite(pumpPin, LOW); // Ensure the pump is initially turned off
     Memory::setLastProfile(controllerIndex, index);
+    profileIndex = index;
     inUse = false;
     return;
 }

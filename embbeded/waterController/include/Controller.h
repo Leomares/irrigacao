@@ -14,6 +14,8 @@ public:
      */
     void setInUse();
 
+    int getProfileIndex();
+
     void setProfile(int index);
 
     float getSoilMoistureData();
