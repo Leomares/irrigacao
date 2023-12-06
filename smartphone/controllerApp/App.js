@@ -102,7 +102,7 @@ function BLEScreen({ navigation }) {
   const [isIdle, setIsIdle] = useState(true)
   const [foundDevices, setFoundDevices] = useState([])//<Device[]>([])
 
-  const addFoundDevice = (device: Device) =>
+  const addFoundDevice = (device) =>
     setFoundDevices(prevState => {
       if (!isFoundDeviceUpdateNecessary(prevState, device)) {
         return prevState
@@ -112,7 +112,7 @@ function BLEScreen({ navigation }) {
       return nextState.concat(extendedDevice)
     })
 
-  const isFoundDeviceUpdateNecessary = (currentDevices: Device[], updatedDevice: Device) => {
+  const isFoundDeviceUpdateNecessary = (currentDevices, updatedDevice) => {
     const currentDevice = currentDevices.find(({ id }) => updatedDevice.id === id)
     if(!currentDevice){return true}
     return false
@@ -128,7 +128,7 @@ function BLEScreen({ navigation }) {
     setIsIdle(true)
   }
 
-  const deviceRender = (device: Device) => {
+  const deviceRender = (device) => {
     const backgroundColor = device.id === BLEService.device.id ? '#222222' : '#dddddd';
     const color = device.id === BLEService.device.id ? 'white' : 'black';
 
@@ -247,7 +247,7 @@ function WifiScreen({ navigation }) {
   const [concatRes64, setconcatRes64] = useState('');
 
   function WifiScreen_read_ssid_and_status(){
-    const readCharacteristic = BLEService.readCharacteristicForDevice(S_WIFI_UUID, C_WIFI_R_STATUS_UUID) TODO: extra characteristic?
+    const readCharacteristic = BLEService.readCharacteristicForDevice(S_WIFI_UUID, C_WIFI_R_STATUS_UUID) //TODO: extra characteristic?
     const wifi_ssid = base64.decode(readCharacteristic.value);
     setSsid(wifi_ssid);
   }
