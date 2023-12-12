@@ -11,14 +11,15 @@ import {
 } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import { Picker } from '@react-native-picker/picker';
 import base64 from 'react-native-base64'
 
-import { BLEService } from '.'
+import { BLEService } from './BLEService'
 import { fullUUID, Device} from 'react-native-ble-plx'
 
-function ButtonsScreen({ navigation }) {
+function ButtonsScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) {
   return (
     <View
       style={{
@@ -29,52 +30,21 @@ function ButtonsScreen({ navigation }) {
       }}>
       <Button
         title="Go to Home"
-        onPress={() => navigation.navigate('Device')}
+        onPress={() => navigation.navigate('BLE_device')}
       />
       <Button title="Go back" onPress={() => navigation.navigate('Profile')} />
     </View>
   );
 }
-  
 
-const Item = ({ item, onPress, backgroundColor, textColor }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    style={[styles.item, { backgroundColor }]}>
-    <View
-      style={{
-        flex: 1,
-        alignItems: 'left',
-        flexDirection: 'row',
-        justifyContent: 'left',
-        backgroundColor: { backgroundColor },
-      }}>
-      <Text style={[styles.title, { textAlign: 'left' }, { color: textColor }]}>
-        {item.title}
-      </Text>
-      <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-          alignSelf: 'stretch',
-          margin: 5,
-        }}
-      />
-      <Text
-        style={[styles.title, { textAlign: 'right' }, { color: textColor }]}>
-        {item.db_value}
-      </Text>
-    </View>
-  </TouchableOpacity>
-);
+export const cloneDeep: <T>(objectToClone: T) => T = objectToClone => JSON.parse(JSON.stringify(objectToClone))
 
-function BLEScreen({ navigation }) {
+function BLEScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) {
   React.useEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
         <Button
-        onPress={() => navigation.navigate('Device')}
+        onPress={() => navigation.navigate('BLE_device')}
         title="Device"
         color= "#2196F3"
         />
@@ -85,7 +55,7 @@ function BLEScreen({ navigation }) {
         flexDirection: 'row',
       }}>
         <Button
-          onPress={() => navigation.navigate('Wi-Fi')}
+          onPress={() => navigation.navigate('WiFi')}
           title="Wi-Fi"
           color= "#444444"
         />
@@ -100,19 +70,19 @@ function BLEScreen({ navigation }) {
   }, [navigation]);
 
   const [isIdle, setIsIdle] = useState(true)
-  const [foundDevices, setFoundDevices] = useState([])//<Device[]>([])
+  const [foundDevices, setFoundDevices] = useState<Device[]>([])
 
-  const addFoundDevice = (device) =>
+  const addFoundDevice = (device: Device) =>
     setFoundDevices(prevState => {
       if (!isFoundDeviceUpdateNecessary(prevState, device)) {
         return prevState
       }
       // deep clone
       const nextState = cloneDeep(prevState)
-      return nextState.concat(extendedDevice)
+      return nextState.concat(device)
     })
 
-  const isFoundDeviceUpdateNecessary = (currentDevices, updatedDevice) => {
+  const isFoundDeviceUpdateNecessary = (currentDevices: Device[], updatedDevice: Device) => {
     const currentDevice = currentDevices.find(({ id }) => updatedDevice.id === id)
     if(!currentDevice){return true}
     return false
@@ -128,25 +98,25 @@ function BLEScreen({ navigation }) {
     setIsIdle(true)
   }
 
-  const deviceRender = (device) => {
-    const backgroundColor = device.id === BLEService.device.id ? '#222222' : '#dddddd';
-    const color = device.id === BLEService.device.id ? 'white' : 'black';
+  const deviceRender = ({item}: {item: Device}) => {
+    // @ts-ignore: Object is possibly 'null'.
+    const backgroundColor = item.id === BLEService.device.id ? '#222222' : '#dddddd';
+    // @ts-ignore: Object is possibly 'null'.
+    const color = item.id === BLEService.device.id ? 'white' : 'black';
 
     return (
       <TouchableOpacity
-      onPress={pickedDevice => {
-      BLEService.connectToDevice(pickedDevice.id).then(onConnectSuccess).catch(onConnectFail)}}
+      onPress={() => {
+      BLEService.connectToDevice(item.id).then(onConnectSuccess).catch(onConnectFail)}}
       style={[styles.item, { backgroundColor }]}>
         <View
-        style={{
-          flex: 1,
-          alignItems: 'left',
+        style={
+          {flex: 1,
           flexDirection: 'row',
-          justifyContent: 'left',
-          backgroundColor: { backgroundColor },
-        }}>
+          backgroundColor: backgroundColor }
+        }>
           <Text style={[styles.title, { textAlign: 'left' }, { color: color }]}>
-            {device.rssi}
+            {item.name}
           </Text>
           <View
           style={{
@@ -158,7 +128,7 @@ function BLEScreen({ navigation }) {
           }}
           />
           <Text style={[styles.title, { textAlign: 'right' }, { color: color }]}>
-            {device.rssi}
+            {item.rssi}
           </Text>
         </View>
       </TouchableOpacity>
@@ -185,7 +155,6 @@ function BLEScreen({ navigation }) {
       <FlatList
         data={foundDevices}
         renderItem={deviceRender}
-        keyExtractor={(device) => device.id}
       />
     </View>
   );
@@ -202,12 +171,12 @@ const C_WIFI_R_STATUS_UUID = fullUUID("2a387d08-8a3e-11ee-b9d1-0242ac120002");
 const C_WIFI_W_CONFIG_UUID = fullUUID("2a387bdc-8a3e-11ee-b9d1-0242ac120002");
 
 
-function WifiScreen({ navigation }) {
+function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) {
   React.useEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
         <Button
-        onPress={() => navigation.navigate('Device')}
+        onPress={() => navigation.navigate('BLE_device')}
         title="Device"
         color= "#444444"
         />
@@ -218,7 +187,7 @@ function WifiScreen({ navigation }) {
         flexDirection: 'row',
       }}>
         <Button
-          onPress={() => navigation.navigate('Wi-Fi')}
+          onPress={() => navigation.navigate('WiFi')}
           title="Wi-Fi"
           color= "#2196F3"
         />
@@ -232,7 +201,7 @@ function WifiScreen({ navigation }) {
     });
     {
     const unsubscribe = navigation.addListener('focus', () => {
-    WifiScreen_read_ssid();
+      WifiScreen_read_ssid_and_status();
     });
 
     // Return the function to unsubscribe from the event so it gets removed on unmount
@@ -247,9 +216,10 @@ function WifiScreen({ navigation }) {
   const [concatRes64, setconcatRes64] = useState('');
 
   function WifiScreen_read_ssid_and_status(){
-    const readCharacteristic = BLEService.readCharacteristicForDevice(S_WIFI_UUID, C_WIFI_R_STATUS_UUID) //TODO: extra characteristic?
-    const wifi_ssid = base64.decode(readCharacteristic.value);
-    setSsid(wifi_ssid);
+    BLEService.readCharacteristicForDevice(S_WIFI_UUID, C_WIFI_R_STATUS_UUID).then(characteristic => {
+      const wifi_ssid = base64.decode(characteristic.value || "");
+      setSsid(wifi_ssid);
+    })
   }
   
   function WifiScreen_write_ssid_password() {
@@ -352,26 +322,31 @@ function WifiScreen({ navigation }) {
   );
 }
 
+interface standardProfileInfo {
+  outside: string;
+  volume: string;
+  regularPeriod: string;
+  cooldownPeriod: string;
+}
 
-
-var standardProfiles = {
+var standardProfiles: Record<string, standardProfileInfo> = {
   "default": {
-    "outside": "1",
-    "volume": "200",
-    "regularPeriod": "0",
-    "cooldownPeriod": "1"
+    outside: "1",
+    volume: "200",
+    regularPeriod: "0",
+    cooldownPeriod: "1"
   },
   "a": {
-    "outside": "1",
-    "volume": "321",
-    "regularPeriod": "963",
-    "cooldownPeriod": "741"
+    outside: "1",
+    volume: "321",
+    regularPeriod: "963",
+    cooldownPeriod: "741"
   },
   "b": {
-    "outside": "0",
-    "volume": "842",
-    "regularPeriod": "426",
-    "cooldownPeriod": "839"
+    outside: "0",
+    volume: "842",
+    regularPeriod: "426",
+    cooldownPeriod: "839"
   }
 }
 
@@ -382,35 +357,34 @@ const S_PROFILE_UUID = fullUUID("4e0b4756-8a3e-11ee-b9d1-0242ac120002");
     "int index,bool isOutside,int volume,int regularPeriod,int cooldownPeriod"
 */
 const C_PROFILE_W_UUID = fullUUID("4e0b4a62-8a3e-11ee-b9d1-0242ac120002");
-// TODO: use this or C_CONTROL_R_W_PROFILE_UUID ?
 
-const S_CONTROL_UUID = {
-    "1": fullUUID("8f904730-8a3e-11ee-b9d1-0242ac120002"),
-    "2": fullUUID("d6b23984-8a3e-11ee-b9d1-0242ac120002"),
-    "3": fullUUID("d6b23ee8-8a3e-11ee-b9d1-0242ac120002"),
-    "4": fullUUID("d6b24050-8a3e-11ee-b9d1-0242ac120002")};
+const S_CONTROL_UUID = [
+    fullUUID("8f904730-8a3e-11ee-b9d1-0242ac120002"),
+    fullUUID("d6b23984-8a3e-11ee-b9d1-0242ac120002"),
+    fullUUID("d6b23ee8-8a3e-11ee-b9d1-0242ac120002"),
+    fullUUID("d6b24050-8a3e-11ee-b9d1-0242ac120002")];
 
 // characteristic to read and write whether a controller is enable or not.
-const C_CONTROL_R_W_STATUS_UUID = {
-    "1": fullUUID("8f904b86-8a3e-11ee-b9d1-0242ac120002"),
-    "2": fullUUID("c6a16c68-8a3e-11ee-b9d1-0242ac120002"),
-    "3": fullUUID("c6a1700a-8a3e-11ee-b9d1-0242ac120002"),
-    "4": fullUUID("c6a1719a-8a3e-11ee-b9d1-0242ac120002")};
+const C_CONTROL_R_W_STATUS_UUID = [
+    fullUUID("8f904b86-8a3e-11ee-b9d1-0242ac120002"),
+    fullUUID("c6a16c68-8a3e-11ee-b9d1-0242ac120002"),
+    fullUUID("c6a1700a-8a3e-11ee-b9d1-0242ac120002"),
+    fullUUID("c6a1719a-8a3e-11ee-b9d1-0242ac120002")];
 
 // characteristic to read the current profile of a controller.
-const C_CONTROL_R_W_PROFILE_UUID = {
-    "1": fullUUID("817bf150-8eec-11ee-b9d1-0242ac120002"),
-    "2": fullUUID("817bf39e-8eec-11ee-b9d1-0242ac120002"),
-    "3": fullUUID("817bf4b6-8eec-11ee-b9d1-0242ac120002"),
-    "4": fullUUID("817bf5ba-8eec-11ee-b9d1-0242ac120002")};
+const C_CONTROL_R_W_PROFILE_UUID = [
+    fullUUID("817bf150-8eec-11ee-b9d1-0242ac120002"),
+    fullUUID("817bf39e-8eec-11ee-b9d1-0242ac120002"),
+    fullUUID("817bf4b6-8eec-11ee-b9d1-0242ac120002"),
+    fullUUID("817bf5ba-8eec-11ee-b9d1-0242ac120002")];
 
 
-function ProfileScreen({ navigation }) {
+function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) {
   React.useEffect(() => {
     navigation.setOptions({
       headerLeft: () => (
         <Button
-        onPress={() => navigation.navigate('Device')}
+        onPress={() => navigation.navigate('BLE_device')}
         title="Device"
         color= "#444444"
         />
@@ -421,7 +395,7 @@ function ProfileScreen({ navigation }) {
         flexDirection: 'row',
       }}>
         <Button
-          onPress={() => navigation.navigate('Wi-Fi')}
+          onPress={() => navigation.navigate('WiFi')}
           title="Wi-Fi"
           color= "#444444"
         />
@@ -455,44 +429,52 @@ function ProfileScreen({ navigation }) {
   const [concatRes64, setconcatRes64] = useState("");
 
   function ProfileScreen_read_current_profile(){
-    const readCharacteristic = BLEService.readCharacteristicForDevice(S_CONTROL_UUID[selectedProfile], C_CONTROL_R_W_PROFILE_UUID[selectedProfile])
-    const profile_info = base64.decode(readCharacteristic.value);
-    setIsOutside(profile_info.substring(0, 1));
-    setVolume(profile_info.substring(1, 4));
-    setRegularPeriod(profile_info.substring(4, 7));
-    setCooldownPeriod(profile_info.substring(7, 10));
-    setConcatRes(profile_info.substring(0, 1));
-    ProfileScreen_read_enabled();
+    BLEService.readCharacteristicForDevice(S_CONTROL_UUID[parseInt(selectedProfile)-1], C_CONTROL_R_W_PROFILE_UUID[parseInt(selectedProfile)-1]).then(
+      characteristic => {
+        var value64 = characteristic.value || "";
+        if(value64 !== ""){
+          const profile_info = base64.decode(value64);
+          setIsOutside(profile_info.substring(0, 1));
+          setVolume(profile_info.substring(1, 4));
+          setRegularPeriod(profile_info.substring(4, 7));
+          setCooldownPeriod(profile_info.substring(7, 10));
+          setConcatRes(profile_info.substring(0, 1));
+          ProfileScreen_read_enabled();
+        }
+      })
   }
   
   function ProfileScreen_write_profile() {
-    const payload_str = isOutside + "0".repeat(3-volume.length) + volume + "0".repeat(3-regularPeriod.length) + regularPeriod + "0".repeat(3-cooldownPeriod.length) + cooldownPeriod;
+    const payload_str = `{parseInt(selectedProfile)-1},${isOutside}${"0".repeat(3 - volume.length)},${volume}${"0".repeat(3 - regularPeriod.length)},${regularPeriod},${"0".repeat(3 - cooldownPeriod.length)}${cooldownPeriod}`;
     setConcatRes(payload_str);
     const payload_64 = base64.encode(payload_str);
     setconcatRes64(payload_64);
-    BLEService.writeCharacteristicWithResponseForDevice(S_CONTROL_UUID[selectedProfile], C_CONTROL_R_W_PROFILE_UUID[selectedProfile],payload_64)
+    BLEService.writeCharacteristicWithResponseForDevice(S_PROFILE_UUID,C_PROFILE_W_UUID,payload_64)
   }
 
   function ProfileScreen_read_enabled(){
-    const readCharacteristic = BLEService.readCharacteristicForDevice(S_CONTROL_UUID[selectedProfile], C_CONTROL_R_W_STATUS_UUID[selectedProfile])
-    setEnabled(base64.decode(readCharacteristic.value));
+    const readCharacteristic = BLEService.readCharacteristicForDevice(S_CONTROL_UUID[parseInt(selectedProfile)-1], C_CONTROL_R_W_STATUS_UUID[parseInt(selectedProfile)-1]).then(
+      characteristic => { 
+        var value64 = characteristic.value || "";
+        if(value64 !== ""){setEnabled(base64.decode(value64));}
+      })
   }
   
   function ProfileScreen_write_enabled() {
     const payload_64 = base64.encode("1");
     setconcatRes64(payload_64);
-    BLEService.writeCharacteristicWithResponseForDevice(S_CONTROL_UUID[selectedProfile], C_CONTROL_R_W_STATUS_UUID[selectedProfile],payload_64)
+    BLEService.writeCharacteristicWithResponseForDevice(S_CONTROL_UUID[parseInt(selectedProfile)-1], C_CONTROL_R_W_STATUS_UUID[parseInt(selectedProfile)-1],payload_64)
     ProfileScreen_read_enabled();
   }
 
-  function profile_handler(selected_profile) {
+  function profile_handler(selected_profile: string) {
     setSelectedProfile(selected_profile);
     setSelectedStandard("current");
     ProfileScreen_read_current_profile();
     ProfileScreen_read_enabled()
   }
 
-  function standard_handler(selected_standard) {
+  function standard_handler(selected_standard: string) {
     setSelectedStandard(selected_standard);
     if(selected_standard === "current"){
       ProfileScreen_read_current_profile();
@@ -500,10 +482,10 @@ function ProfileScreen({ navigation }) {
     else{
       var profile_info = standardProfiles[selected_standard]
       
-      setIsOutside(profile_info["outside"]);
-      setVolume(profile_info["volume"]);
-      setRegularPeriod(profile_info["regularPeriod"]);
-      setCooldownPeriod(profile_info["cooldownPeriod"]);
+      setIsOutside(profile_info.outside);
+      setVolume(profile_info.volume);
+      setRegularPeriod(profile_info.regularPeriod);
+      setCooldownPeriod(profile_info.cooldownPeriod);
     }
   }
 
@@ -675,14 +657,20 @@ function ProfileScreen({ navigation }) {
   );
 }
 
-const Stack = createNativeStackNavigator();
+type RootStackParamList = {
+  BLE_device: undefined;
+  WiFi: undefined;
+  Profile: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Profile">
-        <Stack.Screen name="Device" component={BLEScreen} />
-        <Stack.Screen name="Wi-Fi" component={WifiScreen} />
+      <Stack.Navigator initialRouteName="BLE_device">
+        <Stack.Screen name="BLE_device" component={BLEScreen} />
+        <Stack.Screen name="WiFi" component={WifiScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
       </Stack.Navigator>
     </NavigationContainer>
@@ -697,7 +685,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 15,
-  },
+  }
 });
 
 export default App;
