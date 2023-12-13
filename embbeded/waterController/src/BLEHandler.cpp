@@ -1,3 +1,5 @@
+#define TOKEN_ENABLE 0
+
 #include <Arduino.h>
 #include <NimBLEDevice.h>
 #include "Memory.h"
@@ -279,8 +281,9 @@ class ServerCallbacks : public NimBLEServerCallbacks
         Serial.printf("MTU updated: %u for connection ID: %u\n", MTU, desc->conn_handle);
     };
 
-    /********************* Security handled here **********************
-    ****** Note: these are the same return values as defaults ********/
+/********************* Security handled here **********************
+****** Note: these are the same return values as defaults ********/
+#if TOKEN_ENABLE
     uint32_t onPassKeyRequest()
     {
         Serial.println("Server Passkey Request");
@@ -301,6 +304,7 @@ class ServerCallbacks : public NimBLEServerCallbacks
         }
         Serial.println("Starting BLE work!");
     };
+#endif
 };
 
 static CharacteristicCallbacks chrCallbacks;
@@ -314,10 +318,10 @@ void BLEHandler::setup()
     /** sets device name */
     NimBLEDevice::init("NimBLE-irrigacao");
     pServer = NimBLEDevice::createServer();
-
+#if TOKEN_ENABLE
     NimBLEDevice::setSecurityAuth(true, false, true);
     NimBLEDevice::setSecurityPasskey(654321);
-
+#endif
     pServer->setCallbacks(svrCallbacks);
     /** Optional: set the transmit power, default is 3db */
 #ifdef ESP_PLATFORM
@@ -326,8 +330,11 @@ void BLEHandler::setup()
     NimBLEDevice::setPower(9); /** +9db */
 #endif
 
-    // NimBLEDevice::setSecurityIOCap(BLE_HS_IO_NO_INPUT_OUTPUT);//just connect
+#if TOKEN_ENABLE
     NimBLEDevice::setSecurityIOCap(BLE_HS_IO_DISPLAY_ONLY); // use passkey
+#else
+    NimBLEDevice::setSecurityIOCap(BLE_HS_IO_NO_INPUT_OUTPUT); // just connect
+#endif
     // NimBLEDevice::setSecurityIOCap(BLE_HS_IO_DISPLAY_YESNO); // use numeric comparison
 
     pWiFiService = pServer->createService(S_WIFI_UUID);
