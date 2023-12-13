@@ -171,8 +171,10 @@ const S_WIFI_UUID = fullUUID("2a38798e-8a3e-11ee-b9d1-0242ac120002");
 const C_WIFI_R_STATUS_UUID = fullUUID("2a387d08-8a3e-11ee-b9d1-0242ac120002");
 
 // Set SSID and password to the microcontroller.
-const C_WIFI_W_CONFIG_UUID = fullUUID("2a387bdc-8a3e-11ee-b9d1-0242ac120002");
 
+const C_WIFI_R_W_SSID_UUID = fullUUID("ab8caa74-9983-11ee-b9d1-0242ac120002");
+
+const C_WIFI_W_password_UUID = fullUUID("2a387bdc-8a3e-11ee-b9d1-0242ac120002");
 
 function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) {
   React.useEffect(() => {
@@ -204,7 +206,8 @@ function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) 
     });
     {
     const unsubscribe = navigation.addListener('focus', () => {
-      WifiScreen_read_ssid_and_status();
+      WifiScreen_read_ssid();
+      WifiScreen_read_status();
     });
 
     // Return the function to unsubscribe from the event so it gets removed on unmount
@@ -214,23 +217,35 @@ function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) 
 
   const [ssid, setSsid] = useState('');
   const [password, setPassword] = useState('');
+  const [connected, setConnected] = useState("0");
 
-  const [concatRes, setConcatRes] = useState('');
-  const [concatRes64, setconcatRes64] = useState('');
+  const [connected64, setConnected64] = useState("abc");
+  //const [concatRes, setConcatRes] = useState('');
+  //const [concatRes64, setconcatRes64] = useState('');
 
-  function WifiScreen_read_ssid_and_status(){
-    BLEService.readCharacteristicForDevice(S_WIFI_UUID, C_WIFI_R_STATUS_UUID).then(characteristic => {
+  function WifiScreen_read_ssid(){
+    BLEService.readCharacteristicForDevice(S_WIFI_UUID, C_WIFI_R_W_SSID_UUID).then(characteristic => {
       const wifi_ssid = base64.decode(characteristic.value || "");
       setSsid(wifi_ssid);
     })
   }
+
+  function WifiScreen_read_status(){
+    BLEService.readCharacteristicForDevice(S_WIFI_UUID, C_WIFI_R_STATUS_UUID).then(characteristic => {
+    if(characteristic.value !== null){const wifi_status = base64.decode(characteristic.value);
+    setConnected(wifi_status);
+    setConnected64(characteristic.value);}
+    else{setConnected64("null");}
+    })
+  }
   
   function WifiScreen_write_ssid_password() {
-    const payload_str = ssid + ',' + password;
-    setConcatRes(payload_str);
-    const payload_64 = base64.encode(payload_str);
-    setconcatRes64(payload_64);
-    BLEService.writeCharacteristicWithResponseForDevice(S_WIFI_UUID, C_WIFI_W_CONFIG_UUID,payload_64)
+    //const payload_str = ssid + ',' + password;
+    //setConcatRes(payload_str);
+    //const payload_64 = base64.encode(payload_str);
+    //setconcatRes64(payload_64);
+    BLEService.writeCharacteristicWithResponseForDevice(S_WIFI_UUID, C_WIFI_R_W_SSID_UUID,base64.encode(ssid)).then(() =>
+    {BLEService.writeCharacteristicWithResponseForDevice(S_WIFI_UUID, C_WIFI_W_password_UUID,base64.encode(password));})
   }
 
   return (
@@ -280,6 +295,15 @@ function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) 
           padding: 0,
           marginVertical: 0,
           marginHorizontal: 0,
+          height: 40,
+        }}>
+        <Text style={{ fontSize: 20 , color: "#000000"}}>Status: {connected === "1" ? "Connected" : 'Disconnected'}</Text>
+      </View>
+      <View
+        style={{
+          padding: 0,
+          marginVertical: 0,
+          marginHorizontal: 0,
           height: 50,
         }}>
         <Button
@@ -287,6 +311,35 @@ function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) 
           title="Apply configuration"
         />
       </View>
+      <View
+        style={{
+          padding: 0,
+          marginVertical: 0,
+          marginHorizontal: 0,
+          height: 10,
+        }}/>
+        <View
+        style={{
+          padding: 0,
+          marginVertical: 0,
+          marginHorizontal: 0,
+          height: 50,
+        }}>
+        <Button
+          onPress={() =>{WifiScreen_read_status()}}
+          title="Check connection"
+        />
+        </View>
+        <View
+        style={{
+          padding: 0,
+          marginVertical: 0,
+          marginHorizontal: 0,
+          height: 50,
+        }}>
+        <Text style={{color: "#000000"}}>{connected64}</Text>
+      </View>
+      {/* Debug
       <View
         style={{
           padding: 0,
@@ -323,6 +376,7 @@ function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) 
         }}>
         <Text style={{color: "#000000"}}>{concatRes64}</Text>
       </View>
+      */}
     </View>
   );
 }
@@ -377,7 +431,7 @@ const C_CONTROL_R_W_STATUS_UUID = [
     fullUUID("c6a1719a-8a3e-11ee-b9d1-0242ac120002")];
 
 // characteristic to read the current profile of a controller.
-const C_CONTROL_R_W_PROFILE_UUID = [
+const C_CONTROL_R_PROFILE_UUID = [
     fullUUID("817bf150-8eec-11ee-b9d1-0242ac120002"),
     fullUUID("817bf39e-8eec-11ee-b9d1-0242ac120002"),
     fullUUID("817bf4b6-8eec-11ee-b9d1-0242ac120002"),
@@ -430,36 +484,37 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
   const [isOutside, setIsOutside] = useState("1");
   const [enabled, setEnabled] = useState("0");
 
-  const [concatRes, setConcatRes] = useState("");
-  const [concatRes64, setconcatRes64] = useState("");
+  //const [concatRes, setConcatRes] = useState("");
+  //const [concatRes64, setconcatRes64] = useState("");
 
-  function ProfileScreen_read_current_profile(){
-    BLEService.readCharacteristicForDevice(S_CONTROL_UUID[parseInt(selectedProfile)-1], C_CONTROL_R_W_PROFILE_UUID[parseInt(selectedProfile)-1]).then(
+  function ProfileScreen_read_current_profile(selected_profile: string){
+    //setConcatRes((parseInt(selected_profile)-1).toString())
+    BLEService.readCharacteristicForDevice(S_CONTROL_UUID[(parseInt(selected_profile)-1)], C_CONTROL_R_PROFILE_UUID[(parseInt(selected_profile)-1)]).then(
       characteristic => {
         var value64 = characteristic.value || "";
         if(value64 !== ""){
           const profile_info = base64.decode(value64);
-          setIsOutside(profile_info.substring(0, 1));
-          setVolume(profile_info.substring(1, 4));
-          setRegularPeriod(profile_info.substring(4, 7));
-          setCooldownPeriod(profile_info.substring(7, 10));
-          setConcatRes(profile_info.substring(0, 1));
-          ProfileScreen_read_enabled();
+          const profile_info_array = profile_info.split(",");
+          setIsOutside(profile_info_array[0]);
+          setVolume(profile_info_array[1]);
+          setRegularPeriod(profile_info_array[2]);
+          setCooldownPeriod(profile_info_array[3]);
+          ProfileScreen_read_enabled(selected_profile);
         }
       })
   }
   
   function ProfileScreen_write_profile() {
     const profileIndex = (parseInt(selectedProfile) - 1).toString(10);
-    const payload_str = `${profileIndex},${isOutside},${"0".repeat(3 - volume.length)}${volume},${"0".repeat(3 - regularPeriod.length)}${regularPeriod},${"0".repeat(3 - cooldownPeriod.length)}${cooldownPeriod}`;
-    setConcatRes(payload_str);
+    const payload_str = `${profileIndex}${isOutside}${"0".repeat(3 - volume.length)}${volume}${"0".repeat(3 - regularPeriod.length)}${regularPeriod}${"0".repeat(3 - cooldownPeriod.length)}${cooldownPeriod}`;
+    //setConcatRes(payload_str);
     const payload_64 = base64.encode(payload_str);
-    setconcatRes64(payload_64);
+    //setconcatRes64(payload_64);
     BLEService.writeCharacteristicWithResponseForDevice(S_PROFILE_UUID,C_PROFILE_W_UUID,payload_64)
   }
 
-  function ProfileScreen_read_enabled(){
-    const readCharacteristic = BLEService.readCharacteristicForDevice(S_CONTROL_UUID[parseInt(selectedProfile)-1], C_CONTROL_R_W_STATUS_UUID[parseInt(selectedProfile)-1]).then(
+  function ProfileScreen_read_enabled(selected_profile: string){
+    const readCharacteristic = BLEService.readCharacteristicForDevice(S_CONTROL_UUID[(parseInt(selected_profile)-1)], C_CONTROL_R_W_STATUS_UUID[(parseInt(selected_profile)-1)]).then(
       characteristic => { 
         var value64 = characteristic.value || "";
         if(value64 !== ""){setEnabled(base64.decode(value64));}
@@ -468,22 +523,22 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
   
   function ProfileScreen_write_enabled() {
     const payload_64 = base64.encode("1");
-    setconcatRes64(payload_64);
-    BLEService.writeCharacteristicWithResponseForDevice(S_CONTROL_UUID[parseInt(selectedProfile)-1], C_CONTROL_R_W_STATUS_UUID[parseInt(selectedProfile)-1],payload_64)
-    ProfileScreen_read_enabled();
+    //setconcatRes64(payload_64);
+    BLEService.writeCharacteristicWithResponseForDevice(S_CONTROL_UUID[(parseInt(selectedProfile)-1)], C_CONTROL_R_W_STATUS_UUID[(parseInt(selectedProfile)-1)],payload_64)
+    ProfileScreen_read_enabled(selectedProfile);
   }
 
   function profile_handler(selected_profile: string) {
     setSelectedProfile(selected_profile);
     setSelectedStandard("current");
-    ProfileScreen_read_current_profile();
-    ProfileScreen_read_enabled()
+    ProfileScreen_read_current_profile(selected_profile);
+    ProfileScreen_read_enabled(selected_profile);
   }
 
   function standard_handler(selected_standard: string) {
     setSelectedStandard(selected_standard);
     if(selected_standard === "current"){
-      ProfileScreen_read_current_profile();
+      ProfileScreen_read_current_profile(selectedProfile);
     }
     else{
       var profile_info = standardProfiles[selected_standard]
@@ -642,6 +697,13 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           padding: 0,
           marginVertical: 0,
           marginHorizontal: 0,
+          height: 10,
+        }}/>
+      <View
+        style={{
+          padding: 0,
+          marginVertical: 0,
+          marginHorizontal: 0,
           height: 50,
         }}>
         <Button
@@ -665,6 +727,25 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           title={enabled === "0" ? 'Enable profile' : 'Profile enabled'}
         />
       </View>
+      {/* Debug
+      <View
+        style={{
+          padding: 0,
+          marginVertical: 0,
+          marginHorizontal: 0,
+          height: 50,
+        }}>
+        <Text style={{color: "#000000"}}>{(parseInt(selectedProfile)-1)}</Text>
+      </View>
+      <View
+        style={{
+          padding: 0,
+          marginVertical: 0,
+          marginHorizontal: 0,
+          height: 50,
+        }}>
+        <Text style={{color: "#000000"}}>{concatRes}</Text>
+      </View>
       <View
         style={{
           padding: 0,
@@ -683,6 +764,7 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
         }}>
         <Text style={{color: "#000000"}}>{concatRes64}</Text>
       </View>
+      */}
     </ScrollView>
   );
 }
