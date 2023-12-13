@@ -240,14 +240,15 @@ function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) 
           padding: 0,
           marginVertical: 0,
           marginHorizontal: 0,
-          height: 60,
+          height: 80,
         }}>
-        <Text style={{ fontSize: 20 }}>Wi-Fi name</Text>
+        <Text style={{ fontSize: 20 , color: "#000000"}}>Wi-Fi name</Text>
         <TextInput
           style={{
-            height: 30,
+            height: 50,
             fontSize: 20,
             borderWidth: 1,
+            color: "#000000",
             backgroundColor: '#ffffff',
           }}
           onChangeText={(newText) => setSsid(newText)}
@@ -259,14 +260,15 @@ function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) 
           padding: 0,
           marginVertical: 0,
           marginHorizontal: 0,
-          height: 70,
+          height: 80,
         }}>
-        <Text style={{ fontSize: 20 }}>Wi-Fi password</Text>
+        <Text style={{ fontSize: 20 , color: "#000000"}}>Wi-Fi password</Text>
         <TextInput
           style={{
-            height: 30,
+            height: 50,
             fontSize: 20,
             borderWidth: 1,
+            color: "#000000",
             backgroundColor: '#ffffff',
           }}
           onChangeText={(newText) => setPassword(newText)}
@@ -292,7 +294,7 @@ function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) 
           marginHorizontal: 0,
           height: 50,
         }}>
-        <Text>{ssid}</Text>
+        <Text style={{color: "#000000"}}>{ssid}</Text>
       </View>
       <View
         style={{
@@ -301,7 +303,7 @@ function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) 
           marginHorizontal: 0,
           height: 50,
         }}>
-        <Text>{password}</Text>
+        <Text style={{color: "#000000"}}>{password}</Text>
       </View>
       <View
         style={{
@@ -310,7 +312,7 @@ function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) 
           marginHorizontal: 0,
           height: 50,
         }}>
-        <Text>{concatRes}</Text>
+        <Text style={{color: "#000000"}}>{concatRes}</Text>
       </View>
       <View
         style={{
@@ -319,7 +321,7 @@ function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) 
           marginHorizontal: 0,
           height: 50,
         }}>
-        <Text>{concatRes64}</Text>
+        <Text style={{color: "#000000"}}>{concatRes64}</Text>
       </View>
     </View>
   );
@@ -508,7 +510,7 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
         <Picker
           selectedValue={selectedProfile}
           onValueChange={(itemValue, itemIndex) => profile_handler(itemValue)}
-          style={[{ fontSize: 30 }, { height: 30 }]}>
+          style={[{ fontSize: 30 }, { height: 30 }, {color: "#000000"}]}>
           <Picker.Item label="Profile 1" value="1" />
           <Picker.Item label="Profile 2" value="2" />
           <Picker.Item label="Profile 3" value="3" />
@@ -536,7 +538,7 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           onValueChange={(itemValue, itemIndex) =>
             standard_handler(itemValue)
           }
-          style={[{ fontSize: 30 }, { height: 30 }]}>
+          style={[{ fontSize: 30 }, { height: 30 }, {color: "#000000"}]}>
           <Picker.Item label="Current" value="current" />
           <Picker.Item label="Default" value="default" />
           <Picker.Item label="Plant A" value="a" />
@@ -550,13 +552,14 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           marginHorizontal: 0,
           height: 80,
         }}>
-        <Text style={{ fontSize: 20 }}>Volume (ml)</Text>
+        <Text style={{ fontSize: 20 , color: "#000000"}}>Volume (ml)</Text>
         <TextInput
           style={{
             height: 50,
             fontSize: 20,
             borderWidth: 1,
             backgroundColor: '#ffffff',
+            color: "#000000"
           }}
           placeholder="Irrigation volume"
           onChangeText={(newText) => setVolume(newText.substring(newText.length-3,newText.length))}
@@ -571,13 +574,14 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           marginHorizontal: 0,
           height: 80,
         }}>
-        <Text style={{ fontSize: 20 }}>Regular period (s)</Text>
+        <Text style={{ fontSize: 20 , color: "#000000"}}>Regular period (s)</Text>
         <TextInput
           style={{
             height: 50,
             fontSize: 20,
             borderWidth: 1,
             backgroundColor: '#ffffff',
+            color: "#000000"
           }}
           placeholder="Regular period"
           onChangeText={(newText) => setRegularPeriod(newText.substring(newText.length-3,newText.length))}
@@ -592,13 +596,14 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           marginHorizontal: 0,
           height: 80,
         }}>
-        <Text style={{ fontSize: 20 }}>Cooldown period (s)</Text>
+        <Text style={{ fontSize: 20 , color: "#000000"}}>Cooldown period (s)</Text>
         <TextInput
           style={{
             height: 50,
             fontSize: 20,
             borderWidth: 1,
             backgroundColor: '#ffffff',
+            color: "#000000"
           }}
           placeholder="Cooldown period"
           onChangeText={(newText) => setCooldownPeriod(newText.substring(newText.length-3,newText.length))}
@@ -613,7 +618,7 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           marginHorizontal: 0,
           height: 80,
         }}>
-        <Text style={{ fontSize: 20 }}>Location</Text>
+        <Text style={{ fontSize: 20 , color: "#000000"}}>Location</Text>
         <View
         style={{
           padding: 0,
@@ -621,12 +626,12 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           marginHorizontal: 0,
           height: 50,
           borderWidth: 1,
-          backgroundColor: 'ffffff'
+          backgroundColor: 'ffffff',
         }}>
         <Picker
           selectedValue={isOutside}
           onValueChange={(itemValue, itemIndex) => setIsOutside(itemValue)}
-          style={{ fontSize: 30, height: 30 , backgroundColor: 'ffffff'}}>
+          style={{ fontSize: 30, height: 30 , color: "#000000", backgroundColor: 'ffffff'}}>
           <Picker.Item label="Outside" value="1" />
           <Picker.Item label="Inside" value="0" />
         </Picker>
@@ -667,7 +672,7 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           marginHorizontal: 0,
           height: 50,
         }}>
-        <Text>{concatRes}</Text>
+        <Text style={{color: "#000000"}}>{concatRes}</Text>
       </View>
       <View
         style={{
@@ -676,7 +681,7 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           marginHorizontal: 0,
           height: 50,
         }}>
-        <Text>{concatRes64}</Text>
+        <Text style={{color: "#000000"}}>{concatRes64}</Text>
       </View>
     </ScrollView>
   );
