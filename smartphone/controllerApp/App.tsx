@@ -99,11 +99,11 @@ function BLEScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) {
   }
 
   const deviceRender = ({item}: {item: Device}) => {
-    // @ts-ignore: Object is possibly 'null'.
-    const backgroundColor = item.id === BLEService.device.id ? '#222222' : '#dddddd';
-    // @ts-ignore: Object is possibly 'null'.
-    const color = item.id === BLEService.device.id ? 'white' : 'black';
-
+    const chosenDevice = BLEService.device === null ? '-1' : BLEService.device.id;
+    
+    const backgroundColor = item.id === chosenDevice ? '#222222' : '#dddddd';
+    const color = item.id === chosenDevice ? 'white' : 'black';
+    if(item.name != null){
     return (
       <TouchableOpacity
       onPress={() => {
@@ -133,6 +133,8 @@ function BLEScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) {
         </View>
       </TouchableOpacity>
     )
+    }
+    else{return null}
   };
 
   return (
@@ -155,6 +157,7 @@ function BLEScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) {
       <FlatList
         data={foundDevices}
         renderItem={deviceRender}
+        keyExtractor={item => item.id}
       />
     </View>
   );
@@ -445,7 +448,8 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
   }
   
   function ProfileScreen_write_profile() {
-    const payload_str = `{parseInt(selectedProfile)-1},${isOutside}${"0".repeat(3 - volume.length)},${volume}${"0".repeat(3 - regularPeriod.length)},${regularPeriod},${"0".repeat(3 - cooldownPeriod.length)}${cooldownPeriod}`;
+    const profileIndex = (parseInt(selectedProfile) - 1).toString(10);
+    const payload_str = `${profileIndex},${isOutside},${"0".repeat(3 - volume.length)}${volume},${"0".repeat(3 - regularPeriod.length)}${regularPeriod},${"0".repeat(3 - cooldownPeriod.length)}${cooldownPeriod}`;
     setConcatRes(payload_str);
     const payload_64 = base64.encode(payload_str);
     setconcatRes64(payload_64);
@@ -497,12 +501,14 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           padding: 0,
           marginVertical: 0,
           marginHorizontal: 0,
-          height: 40,
+          height: 50,
+          borderWidth: 1,
+          backgroundColor: 'ffffff'
         }}>
         <Picker
           selectedValue={selectedProfile}
           onValueChange={(itemValue, itemIndex) => profile_handler(itemValue)}
-          style={[{ fontSize: 20 }, { height: 30 }]}>
+          style={[{ fontSize: 30 }, { height: 30 }]}>
           <Picker.Item label="Profile 1" value="1" />
           <Picker.Item label="Profile 2" value="2" />
           <Picker.Item label="Profile 3" value="3" />
@@ -514,14 +520,23 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           padding: 0,
           marginVertical: 0,
           marginHorizontal: 0,
-          height: 40,
+          height: 10
+        }}/>
+      <View
+        style={{
+          padding: 0,
+          marginVertical: 0,
+          marginHorizontal: 0,
+          height: 50,
+          borderWidth: 1,
+          backgroundColor: 'ffffff'
         }}>
         <Picker
           selectedValue={selectedStandard}
           onValueChange={(itemValue, itemIndex) =>
             standard_handler(itemValue)
           }
-          style={[{ fontSize: 20 }, { height: 30 }]}>
+          style={[{ fontSize: 30 }, { height: 30 }]}>
           <Picker.Item label="Current" value="current" />
           <Picker.Item label="Default" value="default" />
           <Picker.Item label="Plant A" value="a" />
@@ -533,12 +548,12 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           padding: 0,
           marginVertical: 0,
           marginHorizontal: 0,
-          height: 60,
+          height: 80,
         }}>
         <Text style={{ fontSize: 20 }}>Volume (ml)</Text>
         <TextInput
           style={{
-            height: 30,
+            height: 50,
             fontSize: 20,
             borderWidth: 1,
             backgroundColor: '#ffffff',
@@ -554,12 +569,12 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           padding: 0,
           marginVertical: 0,
           marginHorizontal: 0,
-          height: 60,
+          height: 80,
         }}>
         <Text style={{ fontSize: 20 }}>Regular period (s)</Text>
         <TextInput
           style={{
-            height: 30,
+            height: 50,
             fontSize: 20,
             borderWidth: 1,
             backgroundColor: '#ffffff',
@@ -575,12 +590,12 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           padding: 0,
           marginVertical: 0,
           marginHorizontal: 0,
-          height: 60,
+          height: 80,
         }}>
         <Text style={{ fontSize: 20 }}>Cooldown period (s)</Text>
         <TextInput
           style={{
-            height: 30,
+            height: 50,
             fontSize: 20,
             borderWidth: 1,
             backgroundColor: '#ffffff',
@@ -596,16 +611,26 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           padding: 0,
           marginVertical: 0,
           marginHorizontal: 0,
-          height: 70,
+          height: 80,
         }}>
         <Text style={{ fontSize: 20 }}>Location</Text>
+        <View
+        style={{
+          padding: 0,
+          marginVertical: 0,
+          marginHorizontal: 0,
+          height: 50,
+          borderWidth: 1,
+          backgroundColor: 'ffffff'
+        }}>
         <Picker
           selectedValue={isOutside}
           onValueChange={(itemValue, itemIndex) => setIsOutside(itemValue)}
-          style={{ fontSize: 20, height: 30 }}>
+          style={{ fontSize: 30, height: 30 , backgroundColor: 'ffffff'}}>
           <Picker.Item label="Outside" value="1" />
           <Picker.Item label="Inside" value="0" />
         </Picker>
+        </View>
       </View>
       <View
         style={{
