@@ -17,8 +17,10 @@ static NimBLECharacteristic *pWiFiStatusCharacteristic;
 const char *C_WIFI_R_STATUS_UUID = "2a387d08-8a3e-11ee-b9d1-0242ac120002";
 
 // Set SSID and password to the microcontroller.
-static NimBLECharacteristic *pWiFiConfigCharacteristic;
-const char *C_WIFI_W_CONFIG_UUID = "2a387bdc-8a3e-11ee-b9d1-0242ac120002";
+static NimBLECharacteristic *pWiFiConfigSCharacteristic;
+static NimBLECharacteristic *pWiFiConfigPCharacteristic;
+const char *C_WIFI_R_W_CONFIG_SSID_UUID = "ab8caa74-9983-11ee-b9d1-0242ac120002";
+const char *C_WIFI_W_CONFIG_PSSD_UUID = "2a387bdc-8a3e-11ee-b9d1-0242ac120002";
 
 static NimBLEService *pProfileService;
 const char *S_PROFILE_UUID = "4e0b4756-8a3e-11ee-b9d1-0242ac120002";
@@ -105,18 +107,35 @@ void setProfileInfo(int controllerIndex, String profileString)
 /*
 Deserialize string fetched from BLE characteristic for setting a profile. The pattern used is "ssid,password".
 */
-void setWiFiInfo(String WiFiString)
+void setWiFiSSIDInfo(String WiFiString)
 {
     String ssid, password;
-    char delimiter = ',';
-    int index = WiFiString.indexOf(delimiter);
-    if (index >= 0)
-    {
-        ssid = WiFiString.substring(0, index);
-        password = WiFiString.substring(index);
-    }
+    Memory::getWiFiConfig(&ssid, &password);
+    // char delimiter = ',';
+    // int index = WiFiString.indexOf(delimiter);
+    // if (index >= 0)
+    //{
+    //     ssid = WiFiString.substring(0, index);
+    //     password = WiFiString.substring(index);
+    // }
 
-    Memory::setWiFiConfig(ssid, password);
+    Memory::setWiFiConfig(WiFiString, password);
+    return;
+}
+
+void setWiFiPasswordInfo(String WiFiString)
+{
+    String ssid, password;
+    Memory::getWiFiConfig(&ssid, &password);
+    // char delimiter = ',';
+    // int index = WiFiString.indexOf(delimiter);
+    // if (index >= 0)
+    //{
+    //     ssid = WiFiString.substring(0, index);
+    //     password = WiFiString.substring(index);
+    // }
+
+    Memory::setWiFiConfig(ssid, WiFiString);
     return;
 }
 
@@ -150,6 +169,12 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
         if (pCharacteristic->getUUID().toString() == C_WIFI_R_STATUS_UUID)
         {
             pCharacteristic->setValue(WiFiHandler::isConnected());
+        }
+        else if (pCharacteristic->getUUID().toString() == C_WIFI_R_W_CONFIG_SSID_UUID)
+        {
+            String ssid, password;
+            Memory::getWiFiConfig(&ssid, &password);
+            pCharacteristic->setValue(ssid);
         }
         else if (pCharacteristic->getUUID().toString() == C_CONTROL_R_W_STATUS_UUID[0])
         {
@@ -196,9 +221,13 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
         {
             setProfileInfo(4, pCharacteristic->getValue());
         }
-        else if (pCharacteristic->getUUID().toString() == C_WIFI_W_CONFIG_UUID)
+        else if (pCharacteristic->getUUID().toString() == C_WIFI_R_W_CONFIG_SSID_UUID)
         {
-            setWiFiInfo(pCharacteristic->getValue());
+            setWiFiSSIDInfo(pCharacteristic->getValue());
+        }
+        else if (pCharacteristic->getUUID().toString() == C_WIFI_W_CONFIG_PSSD_UUID)
+        {
+            setWiFiPasswordInfo(pCharacteristic->getValue());
         }
         else if (pCharacteristic->getUUID().toString() == C_CONTROL_R_W_STATUS_UUID[0])
         {
@@ -341,13 +370,18 @@ void BLEHandler::setup()
     pWiFiStatusCharacteristic = pWiFiService->createCharacteristic(
         C_WIFI_R_STATUS_UUID,
         NIMBLE_PROPERTY::READ);
-    pWiFiConfigCharacteristic = pWiFiService->createCharacteristic(
-        C_WIFI_W_CONFIG_UUID,
+    pWiFiConfigSCharacteristic = pWiFiService->createCharacteristic(
+        C_WIFI_R_W_CONFIG_SSID_UUID,
+        // NIMBLE_PROPERTY::READ || // remove later
+        NIMBLE_PROPERTY::WRITE);
+    pWiFiConfigPCharacteristic = pWiFiService->createCharacteristic(
+        C_WIFI_R_W_CONFIG_SSID_UUID,
         // NIMBLE_PROPERTY::READ || // remove later
         NIMBLE_PROPERTY::WRITE);
 
     pWiFiStatusCharacteristic->setCallbacks(&chrCallbacks);
-    pWiFiConfigCharacteristic->setCallbacks(&chrCallbacks);
+    pWiFiConfigSCharacteristic->setCallbacks(&chrCallbacks);
+    pWiFiConfigPCharacteristic->setCallbacks(&chrCallbacks);
 
     pProfileService = pServer->createService(S_PROFILE_UUID);
     pProfileWriteCharacteristic = pProfileService->createCharacteristic(
