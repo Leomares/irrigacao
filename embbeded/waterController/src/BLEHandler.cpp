@@ -168,7 +168,7 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
 
         if (pCharacteristic->getUUID().toString() == C_WIFI_R_STATUS_UUID)
         {
-            pCharacteristic->setValue(WiFiHandler::isConnected());
+            pCharacteristic->setValue((String)WiFiHandler::isConnected());
         }
         else if (pCharacteristic->getUUID().toString() == C_WIFI_R_W_CONFIG_SSID_UUID)
         {
@@ -219,7 +219,8 @@ class CharacteristicCallbacks : public NimBLECharacteristicCallbacks
     {
         if (pCharacteristic->getUUID().toString() == C_PROFILE_W_UUID)
         {
-            setProfileInfo(4, pCharacteristic->getValue());
+            String data = pCharacteristic->getValue();
+            setProfileInfo(data.substring(0, 1).toInt(), data.substring(1));
         }
         else if (pCharacteristic->getUUID().toString() == C_WIFI_R_W_CONFIG_SSID_UUID)
         {
@@ -375,7 +376,7 @@ void BLEHandler::setup()
         // NIMBLE_PROPERTY::READ || // remove later
         NIMBLE_PROPERTY::WRITE);
     pWiFiConfigPCharacteristic = pWiFiService->createCharacteristic(
-        C_WIFI_R_W_CONFIG_SSID_UUID,
+        C_WIFI_W_CONFIG_PSSD_UUID,
         // NIMBLE_PROPERTY::READ || // remove later
         NIMBLE_PROPERTY::WRITE);
 

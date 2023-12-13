@@ -40,7 +40,7 @@ void setup()
     WiFiHandler wifi;
     WiFiHandler::connectWifi();
 #if DEFAULT_MEMORY_CONFIG
-    Memory::resetNVS();
+    // Memory::resetNVS();
     Memory::setDefaultWiFiConfig();
     Memory::setDefaultProfile();
 #endif
