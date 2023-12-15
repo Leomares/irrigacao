@@ -19,24 +19,6 @@ import base64 from 'react-native-base64'
 import { BLEService } from './BLEService'
 import { fullUUID, Device} from 'react-native-ble-plx'
 
-function ButtonsScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) {
-  return (
-    <View
-      style={{
-        flex: 1,
-        alignItems: 'center',
-        flexDirection: 'row',
-        justifyContent: 'center',
-      }}>
-      <Button
-        title="Go to Home"
-        onPress={() => navigation.navigate('BLE_device')}
-      />
-      <Button title="Go back" onPress={() => navigation.navigate('Profile')} />
-    </View>
-  );
-}
-
 export const cloneDeep: <T>(objectToClone: T) => T = objectToClone => JSON.parse(JSON.stringify(objectToClone))
 
 function BLEScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) {
@@ -90,7 +72,6 @@ function BLEScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) {
 
   const onConnectSuccess = () => {
     setIsIdle(true);
-    navigation.navigate('Profile');
     BLEService.discoverAllServicesAndCharacteristicsForDevice();
   }
 
@@ -167,7 +148,6 @@ function BLEScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) {
 const S_WIFI_UUID = fullUUID("2a38798e-8a3e-11ee-b9d1-0242ac120002");
 
 // Read whether the microcontroller is connected to a WiFi network.
-//TODO: extra characteristic to read ssid?
 const C_WIFI_R_STATUS_UUID = fullUUID("2a387d08-8a3e-11ee-b9d1-0242ac120002");
 
 // Set SSID and password to the microcontroller.
@@ -219,10 +199,6 @@ function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) 
   const [password, setPassword] = useState('');
   const [connected, setConnected] = useState("0");
 
-  const [connected64, setConnected64] = useState("abc");
-  //const [concatRes, setConcatRes] = useState('');
-  //const [concatRes64, setconcatRes64] = useState('');
-
   function WifiScreen_read_ssid(){
     BLEService.readCharacteristicForDevice(S_WIFI_UUID, C_WIFI_R_W_SSID_UUID).then(characteristic => {
       const wifi_ssid = base64.decode(characteristic.value || "");
@@ -233,17 +209,10 @@ function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) 
   function WifiScreen_read_status(){
     BLEService.readCharacteristicForDevice(S_WIFI_UUID, C_WIFI_R_STATUS_UUID).then(characteristic => {
     if(characteristic.value !== null){const wifi_status = base64.decode(characteristic.value);
-    setConnected(wifi_status);
-    setConnected64(characteristic.value);}
-    else{setConnected64("null");}
-    })
+    setConnected(wifi_status);}})
   }
   
   function WifiScreen_write_ssid_password() {
-    //const payload_str = ssid + ',' + password;
-    //setConcatRes(payload_str);
-    //const payload_64 = base64.encode(payload_str);
-    //setconcatRes64(payload_64);
     BLEService.writeCharacteristicWithResponseForDevice(S_WIFI_UUID, C_WIFI_R_W_SSID_UUID,base64.encode(ssid)).then(() =>
     {BLEService.writeCharacteristicWithResponseForDevice(S_WIFI_UUID, C_WIFI_W_password_UUID,base64.encode(password));})
   }
@@ -330,53 +299,6 @@ function WifiScreen({ navigation }: NativeStackScreenProps<RootStackParamList>) 
           title="Check connection"
         />
         </View>
-        <View
-        style={{
-          padding: 0,
-          marginVertical: 0,
-          marginHorizontal: 0,
-          height: 50,
-        }}>
-        <Text style={{color: "#000000"}}>{connected64}</Text>
-      </View>
-      {/* Debug
-      <View
-        style={{
-          padding: 0,
-          marginVertical: 0,
-          marginHorizontal: 0,
-          height: 50,
-        }}>
-        <Text style={{color: "#000000"}}>{ssid}</Text>
-      </View>
-      <View
-        style={{
-          padding: 0,
-          marginVertical: 0,
-          marginHorizontal: 0,
-          height: 50,
-        }}>
-        <Text style={{color: "#000000"}}>{password}</Text>
-      </View>
-      <View
-        style={{
-          padding: 0,
-          marginVertical: 0,
-          marginHorizontal: 0,
-          height: 50,
-        }}>
-        <Text style={{color: "#000000"}}>{concatRes}</Text>
-      </View>
-      <View
-        style={{
-          padding: 0,
-          marginVertical: 0,
-          marginHorizontal: 0,
-          height: 50,
-        }}>
-        <Text style={{color: "#000000"}}>{concatRes64}</Text>
-      </View>
-      */}
     </View>
   );
 }
@@ -484,14 +406,10 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
   const [isOutside, setIsOutside] = useState("1");
   const [enabled, setEnabled] = useState("0");
 
-  //const [concatRes, setConcatRes] = useState("");
-  //const [concatRes64, setconcatRes64] = useState("");
-
   function ProfileScreen_read_current_profile(selected_profile: string){
-    //setConcatRes((parseInt(selected_profile)-1).toString())
     BLEService.readCharacteristicForDevice(S_CONTROL_UUID[(parseInt(selected_profile)-1)], C_CONTROL_R_PROFILE_UUID[(parseInt(selected_profile)-1)]).then(
       characteristic => {
-        var value64 = characteristic.value || "";
+        let value64 = characteristic.value || "";
         if(value64 !== ""){
           const profile_info = base64.decode(value64);
           const profile_info_array = profile_info.split(",");
@@ -507,23 +425,21 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
   function ProfileScreen_write_profile() {
     const profileIndex = (parseInt(selectedProfile) - 1).toString(10);
     const payload_str = `${profileIndex}${isOutside}${"0".repeat(3 - volume.length)}${volume}${"0".repeat(3 - regularPeriod.length)}${regularPeriod}${"0".repeat(3 - cooldownPeriod.length)}${cooldownPeriod}`;
-    //setConcatRes(payload_str);
     const payload_64 = base64.encode(payload_str);
-    //setconcatRes64(payload_64);
-    BLEService.writeCharacteristicWithResponseForDevice(S_PROFILE_UUID,C_PROFILE_W_UUID,payload_64)
+    BLEService.writeCharacteristicWithResponseForDevice(S_PROFILE_UUID,C_PROFILE_W_UUID,payload_64).then(
+      () => { ProfileScreen_read_enabled(selectedProfile);})
   }
 
   function ProfileScreen_read_enabled(selected_profile: string){
     const readCharacteristic = BLEService.readCharacteristicForDevice(S_CONTROL_UUID[(parseInt(selected_profile)-1)], C_CONTROL_R_W_STATUS_UUID[(parseInt(selected_profile)-1)]).then(
       characteristic => { 
-        var value64 = characteristic.value || "";
+        let value64 = characteristic.value || "";
         if(value64 !== ""){setEnabled(base64.decode(value64));}
       })
   }
   
   function ProfileScreen_write_enabled() {
     const payload_64 = base64.encode("1");
-    //setconcatRes64(payload_64);
     BLEService.writeCharacteristicWithResponseForDevice(S_CONTROL_UUID[(parseInt(selectedProfile)-1)], C_CONTROL_R_W_STATUS_UUID[(parseInt(selectedProfile)-1)],payload_64)
     ProfileScreen_read_enabled(selectedProfile);
   }
@@ -541,7 +457,7 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
       ProfileScreen_read_current_profile(selectedProfile);
     }
     else{
-      var profile_info = standardProfiles[selected_standard]
+      let profile_info = standardProfiles[selected_standard]
       
       setIsOutside(profile_info.outside);
       setVolume(profile_info.volume);
@@ -565,7 +481,8 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
         <Picker
           selectedValue={selectedProfile}
           onValueChange={(itemValue, itemIndex) => profile_handler(itemValue)}
-          style={[{ fontSize: 30 }, { height: 30 }, {color: "#000000"}]}>
+          style={[{ fontSize: 30 }, { height: 30 }, {color: "#000000"}]}
+          dropdownIconColor="#000000">
           <Picker.Item label="Profile 1" value="1" />
           <Picker.Item label="Profile 2" value="2" />
           <Picker.Item label="Profile 3" value="3" />
@@ -593,7 +510,8 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           onValueChange={(itemValue, itemIndex) =>
             standard_handler(itemValue)
           }
-          style={[{ fontSize: 30 }, { height: 30 }, {color: "#000000"}]}>
+          style={[{ fontSize: 30 }, { height: 30 }, {color: "#000000"}]}
+          dropdownIconColor="#000000">
           <Picker.Item label="Current" value="current" />
           <Picker.Item label="Default" value="default" />
           <Picker.Item label="Plant A" value="a" />
@@ -686,7 +604,8 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
         <Picker
           selectedValue={isOutside}
           onValueChange={(itemValue, itemIndex) => setIsOutside(itemValue)}
-          style={{ fontSize: 30, height: 30 , color: "#000000", backgroundColor: 'ffffff'}}>
+          style={{ fontSize: 30, height: 30 , color: "#000000", backgroundColor: 'ffffff'}}
+          dropdownIconColor="#000000">
           <Picker.Item label="Outside" value="1" />
           <Picker.Item label="Inside" value="0" />
         </Picker>
@@ -727,44 +646,6 @@ function ProfileScreen({ navigation }: NativeStackScreenProps<RootStackParamList
           title={enabled === "0" ? 'Enable profile' : 'Profile enabled'}
         />
       </View>
-      {/* Debug
-      <View
-        style={{
-          padding: 0,
-          marginVertical: 0,
-          marginHorizontal: 0,
-          height: 50,
-        }}>
-        <Text style={{color: "#000000"}}>{(parseInt(selectedProfile)-1)}</Text>
-      </View>
-      <View
-        style={{
-          padding: 0,
-          marginVertical: 0,
-          marginHorizontal: 0,
-          height: 50,
-        }}>
-        <Text style={{color: "#000000"}}>{concatRes}</Text>
-      </View>
-      <View
-        style={{
-          padding: 0,
-          marginVertical: 0,
-          marginHorizontal: 0,
-          height: 50,
-        }}>
-        <Text style={{color: "#000000"}}>{concatRes}</Text>
-      </View>
-      <View
-        style={{
-          padding: 0,
-          marginVertical: 0,
-          marginHorizontal: 0,
-          height: 50,
-        }}>
-        <Text style={{color: "#000000"}}>{concatRes64}</Text>
-      </View>
-      */}
     </ScrollView>
   );
 }
