@@ -7,7 +7,7 @@ extern APIWrapper api;
 
 Controller::Controller(int controllerIndex, int soilMoisturePin, int pumpPin) : controllerIndex(controllerIndex), soilMoisturePin(soilMoisturePin), pumpPin(pumpPin)
 {
-    soilMoistureThreshold = 2000; // need to measure
+    soilMoistureThreshold = 1000; // need to measure
     pumpFlowRate = 2 * 0.5;       // maximum of 2 L/min
 
     inUse = false;
@@ -46,7 +46,7 @@ void Controller::setProfile(int index)
 
 float Controller::getSoilMoistureData()
 {
-    int measure = analogRead(soilMoisturePin);
+    uint16_t measure = analogRead(soilMoisturePin);
     return (float)measure;
 }
 
@@ -54,9 +54,14 @@ void Controller::turnOnWaterPump(float volume)
 {
     // volume [mL]
     int time_ms = (60 * volume) / this->pumpFlowRate;
-
+    Serial.printf("Turning on water pump for %d mseconds\n", time_ms);
+    pinMode(LED_PUMP, OUTPUT);
+    delay(100);
+    digitalWrite(LED_BUILTIN, HIGH);
     digitalWrite(pumpPin, true);
     delay(time_ms);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(100);
     digitalWrite(pumpPin, false);
     delay(100);
     return;
@@ -71,18 +76,22 @@ float Controller::calculateVolume(float soilMoistureLevel, float rainLevel)
 
     // area of the plant in m2
     float estimated_area = 0.25;
-
-    if (soilMoistureThreshold == 0)
+    Serial.printf("Calculate volume: %f,%f,%d\n", soilMoistureLevel, rainLevel, currentProfile.volume);
+    if (currentProfile.cooldownPeriod > 0)
     {
-        volumeNeeded = min(int((float)currentProfile.volume - rainLevel * estimated_area * 1000), 0);
+        volumeNeeded = (float)currentProfile.volume - rainLevel * estimated_area * 1000;
+        if (volumeNeeded < 0)
+        {
+            volumeNeeded = 0;
+        }
     }
-    else if (getSoilMoistureData() < soilMoistureThreshold)
+    else if (currentProfile.regularPeriod > 0 && (int)soilMoistureLevel < soilMoistureThreshold)
     {
-        volumeNeeded = currentProfile.volume;
+        volumeNeeded = 0;
     }
     else
     {
-        volumeNeeded = 0;
+        volumeNeeded = currentProfile.volume;
     }
     return volumeNeeded;
 }
@@ -111,7 +120,7 @@ void Controller::updateNextEvent()
 
 void Controller::control()
 {
-    Serial.println(F("Controller control engaged"));
+    // Serial.println(F("Controller control engaged"));
     if (!inUse || nextEvent > timerValue)
     {
         Serial.println(F("Controller not in use"));
@@ -137,8 +146,9 @@ void Controller::control()
     }
 
     volumeNeeded = calculateVolume(soilMoistureLevel, rainLevel);
-
+    Serial.printf("Controller %d needs %f ml\n", controllerIndex, volumeNeeded);
     turnOnWaterPump(volumeNeeded);
+
     updateNextEvent();
     return;
 }

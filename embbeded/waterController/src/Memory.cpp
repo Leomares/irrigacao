@@ -95,9 +95,9 @@ void Memory::setLastProfile(int controllerIndex, int profileIndex)
 void Memory::setDefaultProfile()
 {
     Profile currentProfile;
-    currentProfile.volume = 200;
+    currentProfile.volume = 20;
     currentProfile.regularPeriod = 0;
-    currentProfile.cooldownPeriod = 1;
+    currentProfile.cooldownPeriod = 10;
     currentProfile.isOutside = false;
     Memory::setProfile(-1, currentProfile);
     return;

@@ -14,8 +14,8 @@ APIWrapper api;
 #include "Controller.h"
 #include "BLEHandler.h"
 
-const int sensorPins[4] = {34, 35, 36, 39}; // input only pins
-const int pumpPins[4] = {32, 33, 25, 26};
+const int sensorPins[4] = {35, 34, 36, 39}; // input only pins
+const int pumpPins[4] = {33, 32, 25, 26};
 Controller controllers[4] = {
     Controller(0, sensorPins[0], pumpPins[0]),
     Controller(1, sensorPins[1], pumpPins[1]),
@@ -70,7 +70,7 @@ void loop()
 {
     // put your main code here, to run repeatedly:
     // delay(1000 * 60 * 5); // 5 minutes
-    delay(30000); // 30 seconds
+    delay(1000); // 30 seconds
 
     if (!WiFiHandler::isConnected())
     {
@@ -92,6 +92,7 @@ void loop()
     }
     for (int i = 0; i < Controller::getNControllers(); i++)
     {
+        Serial.printf("Controlador %d:\n", i);
         controllers[i].control();
     }
 
