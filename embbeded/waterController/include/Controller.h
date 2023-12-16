@@ -1,8 +1,6 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#define LED_PUMP 2
-
 extern uint64_t timerValue;
 
 class Controller

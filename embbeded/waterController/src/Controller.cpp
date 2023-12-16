@@ -7,7 +7,7 @@ extern APIWrapper api;
 
 Controller::Controller(int controllerIndex, int soilMoisturePin, int pumpPin) : controllerIndex(controllerIndex), soilMoisturePin(soilMoisturePin), pumpPin(pumpPin)
 {
-    soilMoistureThreshold = 1000; // need to measure
+    soilMoistureThreshold = 1500; // need to measure
     pumpFlowRate = 2 * 0.5;       // maximum of 2 L/min
 
     inUse = false;
@@ -55,13 +55,9 @@ void Controller::turnOnWaterPump(float volume)
     // volume [mL]
     int time_ms = (60 * volume) / this->pumpFlowRate;
     Serial.printf("Turning on water pump for %d mseconds\n", time_ms);
-    pinMode(LED_PUMP, OUTPUT);
     delay(100);
-    digitalWrite(LED_BUILTIN, HIGH);
     digitalWrite(pumpPin, true);
     delay(time_ms);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(100);
     digitalWrite(pumpPin, false);
     delay(100);
     return;

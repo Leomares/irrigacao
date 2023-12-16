@@ -422,4 +422,10 @@ void BLEHandler::setup()
     pAdvertising->start();
 
     Serial.println(F("Advertising Started"));
+
+    pinMode(LED_BLE_ACTION, OUTPUT);
+    delay(100);
+    digitalWrite(LED_BLE_ACTION, HIGH);
+    delay(100);
+    digitalWrite(LED_BLE_ACTION, LOW);
 }
